@@ -1,14 +1,21 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# setup_master_node.sh — Master Node Setup for Raspberry Pi
-# Sets up Cloud Platform, K3s Control Plane, immudb, and ChainOps Go Daemon
+# setup_master_node.sh — Complete All-in-One Master Node Setup for Raspberry Pi
+# 1. Cloudflare WARP + Tunnel (cloudflared systemd service)
+# 2. Master Node Listener (FastAPI daemon)
+# 3. K3s Control Plane Server
+# 4. immudb Immutable Ledger Server
+# 5. ChainOps Go Smart Contract Daemon
 # ==============================================================================
 set -e
 
 TARGET_DIR="$HOME/cloud-platform-inpt"
 REPO_URL="https://github.com/AslouneYahya/blockchain-cloud-platform.git"
+CLOUDFLARE_TOKEN="${1:-eyJhIjoiODcwZWRiNzc5M2IyYTc2OGMyZmE2ZGRjYTBlOGYzYmEiLCJ0IjoiNGU2Mzc4NzQtMTRlYi00ZjViLThkMjItNDUyNzMyMTRiZDYyIiwicyI6Ik9EUTBNVGcyTldZdFpXRmlNUzAwTURSbExXRmhOemd0T0RVd01ESXdOalJoTVRaaiJ9}"
 
-echo "=== [1/6] Cloning / Updating Cloud Platform Repository ==="
+echo "======================================================================"
+echo "  [1/7] Cloning / Updating Cloud Platform Repository                  "
+echo "======================================================================"
 if [ -d "$TARGET_DIR" ]; then
     echo "Repository already present, updating..."
     cd "$TARGET_DIR"
@@ -19,31 +26,46 @@ else
     cd "$TARGET_DIR"
 fi
 
-echo "=== [2/6] Running Base Master Node Installer ==="
+echo "======================================================================"
+echo "  [2/7] Installing & Activating Cloudflare WARP + Tunnel              "
+echo "======================================================================"
+cd "$TARGET_DIR"
+chmod +x setup_cloudflare_tunnel.sh
+sudo ./setup_cloudflare_tunnel.sh "$CLOUDFLARE_TOKEN"
+
+echo "======================================================================"
+echo "  [3/7] Running Base Master Node Listener (FastAPI)                   "
+echo "======================================================================"
 cd "$TARGET_DIR/master-node"
 chmod +x install.sh
 chmod +x scripts/*.sh || true
 ./install.sh
 
-echo "=== [3/6] Setting up Linux Kernel cgroups for K3s ==="
+echo "======================================================================"
+echo "  [4/7] Configuring Linux Kernel cgroups for K3s                      "
+echo "======================================================================"
 cd "$TARGET_DIR"
 CMDLINE_FILE="/boot/firmware/cmdline.txt"
 [ ! -f "$CMDLINE_FILE" ] && CMDLINE_FILE="/boot/cmdline.txt"
 
 if [ -f "$CMDLINE_FILE" ]; then
     if ! grep -q "cgroup_memory=1" "$CMDLINE_FILE"; then
-        echo "Enabling cgroup memory flags..."
+        echo "Enabling cgroup memory flags in $CMDLINE_FILE..."
         sudo sed -i '$ s/$/ cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory/' "$CMDLINE_FILE"
     fi
 fi
 
-echo "=== [4/6] Installing K3s Control Plane ==="
+echo "======================================================================"
+echo "  [5/7] Installing K3s Control Plane Server                           "
+echo "======================================================================"
 curl -sfL https://get.k3s.io | sh -s - \
     --write-kubeconfig-mode 644 \
     --disable traefik \
     --node-name "pi-node-01"
 
-echo "=== [5/6] Installing & Starting immudb Ledger ==="
+echo "======================================================================"
+echo "  [6/7] Installing & Starting immudb Ledger Server                    "
+echo "======================================================================"
 IMMUDB_VERSION="v1.9.2"
 sudo mkdir -p /var/lib/immudb /opt/chainops/data
 
@@ -75,7 +97,9 @@ EOF'
 sudo systemctl daemon-reload
 sudo systemctl enable --now immudb.service
 
-echo "=== [6/6] Installing & Starting ChainOps Go Daemon ==="
+echo "======================================================================"
+echo "  [7/7] Installing & Starting ChainOps Go Daemon                      "
+echo "======================================================================"
 if [ -f "$TARGET_DIR/cluster-daemon/daemon-arm64" ]; then
     sudo cp "$TARGET_DIR/cluster-daemon/daemon-arm64" /opt/chainops/chainops-daemon
     sudo chmod +x /opt/chainops/chainops-daemon
@@ -84,7 +108,7 @@ fi
 sudo bash -c 'cat <<EOF > /etc/systemd/system/chainops-daemon.service
 [Unit]
 Description=ChainOps Blockchain Infrastructure Daemon
-After=network.target immudb.service k3s.service
+After=network.target immudb.service k3s.service cloudflared.service
 
 [Service]
 Type=simple
@@ -113,11 +137,12 @@ fi
 
 echo ""
 echo "======================================================================"
-echo "  MASTER NODE INSTALLATION COMPLETE!                                  "
-echo "  - Master Node API (FastAPI):  port 5000 (HEALTHY)                   "
-echo "  - ChainOps Blockchain Daemon: port 8080 (HEALTHY)                   "
-echo "  - immudb Merkle Ledger:       port 3322 (RUNNING)                   "
-echo "  - K3s Control Plane Server:   port 6443 (READY)                     "
+echo "  ALL SERVICES DEPLOYED ON MASTER PI!                                 "
+echo "  1. Cloudflare WARP + Tunnel:  ACTIVE (token: master.aslouneyahya.com) "
+echo "  2. Master Node Listener:      port 5000 (HEALTHY)                   "
+echo "  3. ChainOps Go Daemon:        port 8080 (HEALTHY)                   "
+echo "  4. immudb Merkle Ledger:      port 3322 (RUNNING)                   "
+echo "  5. K3s Control Plane Server:  port 6443 (READY)                     "
 echo "======================================================================"
 echo ""
 echo ">> K3S NODE TOKEN FOR WORKER PIS:"
