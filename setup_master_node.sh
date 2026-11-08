@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# setup_master_node.sh — Standalone Master Node Setup (Raspberry Pi)
-# Uses Fixed Pre-shared Cluster Token: "inpt-blockchain-cluster-secret-2026"
+# setup_master_node.sh — Complete Standalone Master Node Setup (Raspberry Pi)
+# 1. Installs & activates Cloudflare WARP (warp-svc & warp-cli)
+# 2. Installs & starts cloudflared using tunnel token (if not already running)
+# 3. Configures Linux cgroups for K3s
+# 4. Installs K3s Control Plane Server (Port 6443) -> for k3s.aslouneyahya.com
+# 5. Installs & starts immudb Immutable Ledger Server (Port 3322)
+# 6. Installs & starts ChainOps Go Blockchain Daemon (Port 8080) -> for bc.aslouneyahya.com
 # ==============================================================================
 set -e
 
@@ -84,8 +89,9 @@ if [ -f "$CMDLINE_FILE" ]; then
     fi
 fi
 
-sudo apt-get update -y
-sudo apt-get install -y curl ca-certificates iptables
+# Do NOT fail if Debian mirrors have outdated 404 security package versions:
+sudo apt-get update -y || true
+sudo apt-get install -y curl ca-certificates iptables --fix-missing || true
 
 echo "======================================================================"
 echo "  [4/6] Installing K3s Server with Hardcoded Token                    "
