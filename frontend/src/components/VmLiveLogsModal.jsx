@@ -13,7 +13,7 @@ export default function VmLiveLogsModal({ vm, onClose }) {
       const list = res.data?.logs || res.data?.data || [];
       setLogs(list);
     } catch (err) {
-      console.error('Erreur chargement logs:', err);
+      console.error('Error fetching logs:', err);
     } finally {
       setLoading(false);
     }
@@ -35,49 +35,43 @@ export default function VmLiveLogsModal({ vm, onClose }) {
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: 'rgba(5, 10, 20, 0.85)',
-      backdropFilter: 'blur(10px)',
+      background: 'rgba(0, 0, 0, 0.75)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 1200,
+      zIndex: 100,
       padding: '1rem',
     }}>
       <div style={{
-        background: '#0a0f1d',
-        border: '1px solid rgba(6, 182, 212, 0.3)',
-        borderRadius: '16px',
-        maxWidth: '800px',
+        background: '#111318',
+        border: '1px solid #1f242d',
+        borderRadius: '8px',
+        maxWidth: '750px',
         width: '100%',
-        height: '75vh',
+        height: '70vh',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 25px 60px rgba(0,0,0,0.8), 0 0 30px rgba(6, 182, 212, 0.1)',
         color: '#f8fafc',
         overflow: 'hidden',
       }}>
         {/* Header */}
         <div style={{
-          padding: '1rem 1.5rem',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          padding: '0.85rem 1.25rem',
+          borderBottom: '1px solid #1f242d',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          background: 'rgba(15, 23, 42, 0.6)',
         }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '1.2rem' }}>📋</span>
-              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800', color: '#fff' }}>
-                Journaux Pod K3s & Preuve immudb : {vm.name}
-              </h3>
+            <div style={{ fontWeight: '600', fontSize: '0.875rem', color: '#f8fafc' }}>
+              Pod Logs: {vm.name}
             </div>
-            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-              Streaming en direct • Vérifié par racine de Merkle SHA-256
-            </span>
+            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+              Live stream from K3s container runtime
+            </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
             <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer' }}>
               <input
                 type="checkbox"
@@ -88,46 +82,35 @@ export default function VmLiveLogsModal({ vm, onClose }) {
             </label>
             <button
               onClick={onClose}
-              style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.4rem', cursor: 'pointer' }}
+              style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '1.1rem', cursor: 'pointer' }}
             >
               ✕
             </button>
           </div>
         </div>
 
-        {/* Terminal logs viewport */}
+        {/* Console output */}
         <div style={{
           flex: 1,
-          padding: '1.25rem',
+          padding: '1rem',
+          background: '#090a0f',
           overflowY: 'auto',
-          fontFamily: "'Fira Code', Consolas, monospace",
-          fontSize: '0.8rem',
-          background: '#070b14',
-          lineHeight: 1.6,
+          fontFamily: 'monospace',
+          fontSize: '0.78rem',
+          lineHeight: 1.5,
+          color: '#cbd5e1',
         }}>
           {loading && logs.length === 0 ? (
-            <div style={{ color: '#94a3b8', textAlign: 'center', padding: '2rem' }}>Connexion au flux de logs...</div>
+            <div style={{ color: '#64748b' }}>Connecting to pod stream...</div>
           ) : logs.length === 0 ? (
-            <div style={{ color: '#94a3b8', textAlign: 'center', padding: '2rem' }}>Aucun log disponible pour ce conteneur.</div>
+            <div style={{ color: '#64748b' }}>No log entries recorded.</div>
           ) : (
-            logs.map((logLine, idx) => {
-              const text = typeof logLine === 'string' ? logLine : (logLine.message || JSON.stringify(logLine));
-              const isAudit = text.includes('immudb') || text.includes('Merkle');
-              const isK8s = text.includes('K3s') || text.includes('client-go');
-              const isSuccess = text.includes('successfully') || text.includes('started');
-
-              let color = '#cbd5e1';
-              if (isAudit) color = '#a78bfa';
-              else if (isK8s) color = '#38bdf8';
-              else if (isSuccess) color = '#34d399';
-
-              return (
-                <div key={idx} style={{ display: 'flex', gap: '0.75rem', color }}>
-                  <span style={{ color: '#64748b', userSelect: 'none' }}>{(idx + 1).toString().padStart(2, '0')}</span>
-                  <span style={{ wordBreak: 'break-all' }}>{text}</span>
-                </div>
-              );
-            })
+            logs.map((logLine, idx) => (
+              <div key={idx} style={{ marginBottom: '0.2rem' }}>
+                <span style={{ color: '#64748b', marginRight: '0.5rem' }}>{idx + 1}</span>
+                <span>{logLine}</span>
+              </div>
+            ))
           )}
           <div ref={terminalEndRef} />
         </div>

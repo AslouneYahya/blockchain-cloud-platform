@@ -11,6 +11,7 @@ export default function VmManager() {
   const [selectedLogsVm, setSelectedLogsVm] = useState(null);
   const [selectedTerminalVm, setSelectedTerminalVm] = useState(null);
   const [manifestModal, setManifestModal] = useState(null);
+  const [copiedManifest, setCopiedManifest] = useState(false);
 
   useEffect(() => {
     loadDeployments();
@@ -31,14 +32,14 @@ export default function VmManager() {
   }
 
   async function handleTerminate(name) {
-    if (!window.confirm(`Confirmer la résiliation cryptographiquement vérifiée de '${name}' sur le cluster K3s ?`)) {
+    if (!window.confirm(`Terminate deployment "${name}"? This action will record a termination transaction in immudb.`)) {
       return;
     }
     try {
       await deleteVm(name);
       loadDeployments();
     } catch (err) {
-      alert('Erreur: ' + (err?.response?.data?.error || err.message));
+      alert('Error: ' + (err?.response?.data?.error || err.message));
     }
   }
 
@@ -47,308 +48,344 @@ export default function VmManager() {
       const res = await getManifest(name);
       setManifestModal({ name, yaml: res.data?.manifest });
     } catch (err) {
-      alert('Erreur lors du chargement du manifest: ' + err.message);
+      alert('Failed to load Kubernetes manifest: ' + err.message);
+    }
+  }
+
+  function copyManifest() {
+    if (manifestModal?.yaml) {
+      navigator.clipboard.writeText(manifestModal.yaml);
+      setCopiedManifest(true);
+      setTimeout(() => setCopiedManifest(false), 2000);
     }
   }
 
   return (
     <div>
-      {/* ─── Top Bar ───────────────────────────────────────────────────────── */}
+      {/* ─── Action Bar ────────────────────────────────────────────────────── */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '1.5rem',
-        flexWrap: 'wrap',
-        gap: '0.85rem',
+        marginBottom: '1.25rem',
       }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: '800', color: '#f8fafc' }}>
-            Conteneurs & Charges Orchestrées (K3s)
+          <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '600', color: '#f8fafc' }}>
+            Workloads
           </h2>
-          <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
-            Pods exécutés sur les Raspberry Pis après validation Smart Contract et accord de quorum Raft
+          <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+            K3s pods managed by smart contract rules and Raft consensus
           </span>
         </div>
 
         <button
           onClick={() => setShowDeployModal(true)}
           style={{
-            background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
-            border: 'none',
+            background: '#2563eb',
             color: '#fff',
-            padding: '0.7rem 1.4rem',
-            borderRadius: '10px',
-            fontWeight: '700',
-            fontSize: '0.92rem',
+            border: 'none',
+            padding: '0.5rem 1rem',
+            borderRadius: '6px',
+            fontSize: '0.85rem',
+            fontWeight: '600',
             cursor: 'pointer',
-            boxShadow: '0 4px 18px rgba(6, 182, 212, 0.35)',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem',
-            transition: 'all 0.15s ease',
+            gap: '0.4rem',
           }}
+          onMouseOver={e => (e.currentTarget.style.background = '#1d4ed8')}
+          onMouseOut={e => (e.currentTarget.style.background = '#2563eb')}
         >
-          <span>✍️</span>
-          <span>Signer & Déployer un Conteneur</span>
+          <span>+</span> Deploy Workload
         </button>
       </div>
 
-      {/* ─── Deployments Grid ──────────────────────────────────────────────── */}
+      {/* ─── Workloads Table / Cards ───────────────────────────────────────── */}
       {loading && deployments.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '4rem', color: '#94a3b8' }}>
-          Chargement des déploiements...
+        <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b', fontSize: '0.875rem' }}>
+          Loading deployments...
         </div>
       ) : deployments.length === 0 ? (
         <div style={{
-          background: 'rgba(15, 23, 42, 0.6)',
-          border: '1px dashed rgba(6, 182, 212, 0.3)',
-          borderRadius: '16px',
-          padding: '4rem 1.5rem',
+          background: '#111318',
+          border: '1px solid #1f242d',
+          borderRadius: '8px',
+          padding: '3rem 1.5rem',
           textAlign: 'center',
-          color: '#94a3b8',
         }}>
-          <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>📦</div>
-          <h3 style={{ color: '#f1f5f9', margin: '0 0 0.5rem 0', fontSize: '1.25rem', fontWeight: '700' }}>
-            Aucun conteneur actif sur le cluster
+          <h3 style={{ color: '#f1f5f9', margin: '0 0 0.4rem 0', fontSize: '1rem', fontWeight: '600' }}>
+            No active workloads
           </h3>
-          <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.9rem', maxWidth: '480px', marginInline: 'auto' }}>
-            Configurez un déploiement et signez le avec votre clé privée Web3 pour déclencher le pipeline décentralisé.
+          <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.82rem', color: '#64748b' }}>
+            Deploy a container to schedule pods on physical Raspberry Pis across the consensus quorum.
           </p>
           <button
             onClick={() => setShowDeployModal(true)}
             style={{
-              background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
+              background: '#2563eb',
               color: '#fff',
               border: 'none',
-              padding: '0.65rem 1.5rem',
-              borderRadius: '8px',
-              fontWeight: '700',
+              padding: '0.5rem 1rem',
+              borderRadius: '6px',
+              fontSize: '0.85rem',
+              fontWeight: '600',
               cursor: 'pointer',
-              boxShadow: '0 4px 14px rgba(6, 182, 212, 0.35)',
             }}
           >
-            Déployer le Premier Conteneur
+            Deploy Workload
           </button>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '1.35rem' }}>
-          {deployments.map(dep => {
-            const isRunning = dep.phase === 'Running';
+        <div style={{
+          background: '#111318',
+          border: '1px solid #1f242d',
+          borderRadius: '8px',
+          overflow: 'hidden',
+        }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
+            <thead>
+              <tr style={{ background: '#0d0f14', borderBottom: '1px solid #1f242d', color: '#64748b' }}>
+                <th style={{ padding: '0.75rem 1rem', fontWeight: '500' }}>Workload</th>
+                <th style={{ padding: '0.75rem 1rem', fontWeight: '500' }}>Hardware Node</th>
+                <th style={{ padding: '0.75rem 1rem', fontWeight: '500' }}>Resources</th>
+                <th style={{ padding: '0.75rem 1rem', fontWeight: '500' }}>Network IP</th>
+                <th style={{ padding: '0.75rem 1rem', fontWeight: '500' }}>Status</th>
+                <th style={{ padding: '0.75rem 1rem', fontWeight: '500', textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {deployments.map(dep => {
+                const isRunning = dep.phase === 'Running';
 
-            return (
-              <div
-                key={dep.deploymentId}
-                style={{
-                  background: 'rgba(15, 23, 42, 0.75)',
-                  backdropFilter: 'blur(16px)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '14px',
-                  padding: '1.35rem',
-                  color: '#f8fafc',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.85rem' }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '800', color: '#fff' }}>
-                          {dep.name}
-                        </h3>
-                        <span style={{
-                          background: 'rgba(6, 182, 212, 0.15)',
-                          color: '#38bdf8',
-                          padding: '0.15rem 0.45rem',
-                          borderRadius: '6px',
-                          fontSize: '0.72rem',
-                          fontFamily: 'monospace',
-                          fontWeight: '700',
-                        }}>
-                          Tx #{dep.txId}
-                        </span>
+                return (
+                  <tr
+                    key={dep.deploymentId}
+                    style={{
+                      borderBottom: '1px solid #181b22',
+                      transition: 'background 0.15s',
+                    }}
+                    onMouseOver={e => (e.currentTarget.style.background = '#151820')}
+                    onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    {/* Workload & Image */}
+                    <td style={{ padding: '0.85rem 1rem' }}>
+                      <div style={{ fontWeight: '600', color: '#f8fafc' }}>
+                        {dep.name}
                       </div>
-                      <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontFamily: 'monospace', marginTop: '0.2rem' }}>
+                      <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem' }}>
                         {dep.image}
                       </div>
-                    </div>
+                    </td>
 
-                    <span style={{
-                      background: isRunning ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                      color: isRunning ? '#34d399' : '#f87171',
-                      border: `1px solid ${isRunning ? '#10b981' : '#ef4444'}`,
-                      padding: '0.25rem 0.65rem',
-                      borderRadius: '999px',
-                      fontSize: '0.75rem',
-                      fontWeight: '700',
-                    }}>
-                      ● {dep.phase}
-                    </span>
-                  </div>
+                    {/* Hardware Node */}
+                    <td style={{ padding: '0.85rem 1rem', color: '#94a3b8' }}>
+                      {dep.nodeAssigned || 'pi-node-01'}
+                    </td>
 
-                  <div style={{
-                    background: 'rgba(0, 0, 0, 0.35)',
-                    borderRadius: '10px',
-                    padding: '0.85rem',
-                    fontSize: '0.82rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.45rem',
-                    marginBottom: '1.15rem',
-                  }}>
-                    <div>Nœud Hardware Pi : <strong style={{ color: '#38bdf8' }}>{dep.nodeAssigned}</strong></div>
-                    <div>Ressources : <strong style={{ color: '#cbd5e1' }}>{dep.ramMb} MB RAM • {dep.cpu} vCPU</strong></div>
-                    <div>IP Pod Réseau : <span style={{ fontFamily: 'monospace', color: '#a78bfa' }}>{dep.internalIp}:{dep.port}</span></div>
-                    <div>Ingress Traefik : <a href={dep.ingressUrl} target="_blank" rel="noreferrer" style={{ color: '#60a5fa', textDecoration: 'none' }}>{dep.ingressUrl}</a></div>
-                  </div>
-                </div>
+                    {/* Resources */}
+                    <td style={{ padding: '0.85rem 1rem', color: '#94a3b8' }}>
+                      {dep.ramMb} MB • {dep.cpu} vCPU
+                    </td>
 
-                {/* Card Action Buttons */}
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <button
-                    onClick={() => setSelectedTerminalVm({ id: dep.name, name: dep.name, os: 'Linux 5.15 ARM64 (K3s Pod)', ipAddress: dep.internalIp, cpu: dep.cpu, ramMb: dep.ramMb, diskGb: 10 })}
-                    style={{
-                      flex: 1,
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      color: '#e2e8f0',
-                      padding: '0.5rem',
-                      borderRadius: '8px',
-                      fontSize: '0.78rem',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    💻 SSH
-                  </button>
+                    {/* Network IP & Ingress */}
+                    <td style={{ padding: '0.85rem 1rem' }}>
+                      <div style={{ fontFamily: 'monospace', color: '#cbd5e1' }}>
+                        {dep.internalIp || '10.42.0.x'}:{dep.port}
+                      </div>
+                      {dep.ingressUrl && (
+                        <div style={{ fontSize: '0.72rem', color: '#2563eb', marginTop: '0.15rem' }}>
+                          {dep.ingressUrl}
+                        </div>
+                      )}
+                    </td>
 
-                  <button
-                    onClick={() => setSelectedLogsVm({ id: dep.name, name: dep.name, status: dep.phase })}
-                    style={{
-                      flex: 1,
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      color: '#e2e8f0',
-                      padding: '0.5rem',
-                      borderRadius: '8px',
-                      fontSize: '0.78rem',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    📋 Logs
-                  </button>
+                    {/* Status */}
+                    <td style={{ padding: '0.85rem 1rem' }}>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        padding: '0.2rem 0.5rem',
+                        borderRadius: '4px',
+                        fontSize: '0.75rem',
+                        fontWeight: '500',
+                        background: isRunning ? '#14201a' : '#201618',
+                        color: isRunning ? '#34d399' : '#f87171',
+                        border: `1px solid ${isRunning ? '#1e3a2b' : '#3d1d23'}`,
+                      }}>
+                        <span style={{
+                          width: '6px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          background: isRunning ? '#10b981' : '#ef4444',
+                        }} />
+                        {dep.phase}
+                      </span>
+                    </td>
 
-                  <button
-                    onClick={() => handleShowManifest(dep.name)}
-                    style={{
-                      flex: 1,
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      color: '#e2e8f0',
-                      padding: '0.5rem',
-                      borderRadius: '8px',
-                      fontSize: '0.78rem',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    ☸️ Manifest
-                  </button>
+                    {/* Action buttons */}
+                    <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', gap: '0.4rem', alignItems: 'center' }}>
+                        <button
+                          onClick={() => setSelectedLogsVm({ id: dep.name, name: dep.name, status: dep.phase })}
+                          style={{
+                            background: '#181b22',
+                            border: '1px solid #272d38',
+                            color: '#94a3b8',
+                            padding: '0.3rem 0.55rem',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            cursor: 'pointer',
+                          }}
+                          onMouseOver={e => (e.currentTarget.style.color = '#f1f5f9')}
+                          onMouseOut={e => (e.currentTarget.style.color = '#94a3b8')}
+                        >
+                          Logs
+                        </button>
 
-                  <button
-                    onClick={() => handleTerminate(dep.name)}
-                    style={{
-                      background: 'rgba(239, 68, 68, 0.15)',
-                      border: '1px solid rgba(239, 68, 68, 0.3)',
-                      color: '#f87171',
-                      padding: '0.5rem 0.75rem',
-                      borderRadius: '8px',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                    }}
-                    title="Résiliation cryptographiquement vérifiée"
-                  >
-                    🗑️
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+                        <button
+                          onClick={() => handleShowManifest(dep.name)}
+                          style={{
+                            background: '#181b22',
+                            border: '1px solid #272d38',
+                            color: '#94a3b8',
+                            padding: '0.3rem 0.55rem',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            cursor: 'pointer',
+                          }}
+                          onMouseOver={e => (e.currentTarget.style.color = '#f1f5f9')}
+                          onMouseOut={e => (e.currentTarget.style.color = '#94a3b8')}
+                        >
+                          YAML
+                        </button>
+
+                        <button
+                          onClick={() => setSelectedTerminalVm({ id: dep.name, name: dep.name, os: 'Linux ARM64 (K3s Pod)', ipAddress: dep.internalIp, cpu: dep.cpu, ramMb: dep.ramMb })}
+                          style={{
+                            background: '#181b22',
+                            border: '1px solid #272d38',
+                            color: '#94a3b8',
+                            padding: '0.3rem 0.55rem',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            cursor: 'pointer',
+                          }}
+                          onMouseOver={e => (e.currentTarget.style.color = '#f1f5f9')}
+                          onMouseOut={e => (e.currentTarget.style.color = '#94a3b8')}
+                        >
+                          Exec
+                        </button>
+
+                        {isRunning && (
+                          <button
+                            onClick={() => handleTerminate(dep.name)}
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid #3d1d23',
+                              color: '#f87171',
+                              padding: '0.3rem 0.55rem',
+                              borderRadius: '4px',
+                              fontSize: '0.75rem',
+                              cursor: 'pointer',
+                            }}
+                            onMouseOver={e => (e.currentTarget.style.background = '#27171a')}
+                            onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
+                          >
+                            Terminate
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
-      {/* ─── Manifest Modal ────────────────────────────────────────────────── */}
+      {/* ─── Manifest YAML Modal ───────────────────────────────────────────── */}
       {manifestModal && (
         <div style={{
           position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.85)',
-          backdropFilter: 'blur(8px)',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.7)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1100,
-          padding: '1rem',
+          zIndex: 100,
+          padding: '1.5rem',
         }}>
           <div style={{
-            background: '#090e17',
-            border: '1px solid rgba(6, 182, 212, 0.3)',
-            borderRadius: '16px',
-            maxWidth: '680px',
+            background: '#111318',
+            border: '1px solid #1f242d',
+            borderRadius: '8px',
             width: '100%',
-            maxHeight: '82vh',
-            display: 'flex',
-            flexDirection: 'column',
-            color: '#f8fafc',
-            boxShadow: '0 25px 60px rgba(0,0,0,0.8)',
+            maxWidth: '650px',
+            overflow: 'hidden',
           }}>
             <div style={{
-              padding: '1.15rem 1.5rem',
-              borderBottom: '1px solid rgba(255,255,255,0.08)',
+              padding: '0.85rem 1.25rem',
+              borderBottom: '1px solid #1f242d',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
             }}>
-              <div>
-                <div style={{ fontWeight: '800', fontSize: '1rem' }}>
-                  ☸️ Instructions Kubernetes Manifest (client-go) : {manifestModal.name}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                  Généré déterministement à partir de la transaction immudb
-                </div>
+              <span style={{ fontWeight: '600', fontSize: '0.9rem', color: '#f8fafc' }}>
+                Manifest: {manifestModal.name}
+              </span>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <button
+                  onClick={copyManifest}
+                  style={{
+                    background: '#181b22',
+                    border: '1px solid #272d38',
+                    color: copiedManifest ? '#34d399' : '#94a3b8',
+                    padding: '0.25rem 0.6rem',
+                    borderRadius: '4px',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {copiedManifest ? 'Copied' : 'Copy YAML'}
+                </button>
+                <button
+                  onClick={() => setManifestModal(null)}
+                  style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '1rem' }}
+                >
+                  ✕
+                </button>
               </div>
-              <button
-                onClick={() => setManifestModal(null)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.4rem', cursor: 'pointer' }}
-              >
-                ✕
-              </button>
             </div>
-            <pre style={{
-              padding: '1.5rem',
-              margin: 0,
-              overflowY: 'auto',
-              fontFamily: "'Fira Code', Consolas, monospace",
-              fontSize: '0.82rem',
-              color: '#38bdf8',
-              lineHeight: 1.5,
-            }}>
-              {manifestModal.yaml}
-            </pre>
+
+            <div style={{ padding: '1rem 1.25rem', maxHeight: '420px', overflowY: 'auto' }}>
+              <pre style={{
+                margin: 0,
+                fontSize: '0.78rem',
+                fontFamily: 'monospace',
+                color: '#cbd5e1',
+                lineHeight: 1.45,
+                whiteSpace: 'pre-wrap',
+              }}>
+                {manifestModal.yaml}
+              </pre>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Modals */}
+      {/* Sub-modals */}
       {showDeployModal && (
         <DeployModal
           onClose={() => setShowDeployModal(false)}
-          onDeployed={loadDeployments}
+          onDeployed={() => {
+            setShowDeployModal(false);
+            loadDeployments();
+          }}
         />
       )}
 

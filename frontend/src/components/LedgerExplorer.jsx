@@ -41,16 +41,16 @@ export default function LedgerExplorer() {
   }
 
   async function handleSimulateTamper(txId) {
-    if (!window.confirm(`Simuler une altération illégitime par un attaquant/admin SSH sur la Tx #${txId} ?`)) {
+    if (!window.confirm(`Simulate an unauthorized state tamper on Tx #${txId}? This will demonstrate Merkle tree tampering detection.`)) {
       return;
     }
     try {
-      const res = await simulateTamper(txId, 'malicious-crypto-miner:latest');
-      alert(`Simulation d'attaque exécutée : ${res.data.auditResult}`);
+      const res = await simulateTamper(txId, 'unauthorized-malicious-image:latest');
+      alert(`Tamper test executed: ${res.data.auditResult}`);
       fetchLedger();
       handleVerifyAudit();
     } catch (err) {
-      alert('Erreur: ' + err.message);
+      alert('Error: ' + err.message);
     }
   }
 
@@ -66,341 +66,239 @@ export default function LedgerExplorer() {
   });
 
   return (
-    <div style={{
-      background: 'rgba(15, 23, 42, 0.75)',
-      backdropFilter: 'blur(16px)',
-      border: '1px solid rgba(255, 255, 255, 0.08)',
-      borderRadius: '16px',
-      padding: '1.75rem',
-      color: '#f8fafc',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-    }}>
+    <div>
       {/* ─── Header & Actions ──────────────────────────────────────────────── */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
+        alignItems: 'center',
+        marginBottom: '1.25rem',
         flexWrap: 'wrap',
-        gap: '1rem',
-        marginBottom: '1.5rem',
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
-        paddingBottom: '1.25rem',
+        gap: '0.75rem',
       }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <span style={{ fontSize: '1.5rem' }}>⛓️</span>
-            <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: '800' }}>
-              Explorateur de Registre Immuable (immudb)
-            </h2>
-          </div>
-          <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.85rem', color: '#94a3b8' }}>
-            Chaque modification d'infrastructure physique est une transaction financière scellée dans l'arbre de Merkle.
-          </p>
+          <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '600', color: '#f8fafc' }}>
+            Immutable Ledger (immudb)
+          </h2>
+          <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+            Cryptographically chained SHA-256 blocks with Merkle tree integrity
+          </span>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
-          <button
-            onClick={fetchLedger}
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <input
+            type="text"
+            placeholder="Search tx, hash, signer..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
             style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              color: '#cbd5e1',
-              padding: '0.55rem 1rem',
-              borderRadius: '8px',
-              fontSize: '0.85rem',
-              fontWeight: '600',
-              cursor: 'pointer',
+              background: '#111318',
+              border: '1px solid #1f242d',
+              borderRadius: '4px',
+              padding: '0.4rem 0.65rem',
+              color: '#f8fafc',
+              fontSize: '0.8rem',
+              width: '200px',
             }}
-          >
-            🔄 Actualiser
-          </button>
+          />
 
           <button
             onClick={handleVerifyAudit}
             disabled={verifying}
             style={{
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              border: 'none',
-              color: '#fff',
-              padding: '0.55rem 1.15rem',
-              borderRadius: '8px',
-              fontSize: '0.85rem',
-              fontWeight: '700',
-              cursor: verifying ? 'wait' : 'pointer',
-              boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.45rem',
+              background: '#181b22',
+              border: '1px solid #272d38',
+              color: '#f8fafc',
+              padding: '0.4rem 0.75rem',
+              borderRadius: '4px',
+              fontSize: '0.8rem',
+              fontWeight: '500',
+              cursor: verifying ? 'not-allowed' : 'pointer',
             }}
           >
-            <span>🛡️</span>
-            <span>{verifying ? 'Vérification Merkle...' : 'Vérifier Intégrité Cryptographique'}</span>
+            {verifying ? 'Verifying...' : 'Verify Audit Trail'}
           </button>
         </div>
       </div>
 
-      {/* ─── Merkle Root Banner ────────────────────────────────────────────── */}
-      <div style={{
-        background: 'rgba(0, 0, 0, 0.35)',
-        border: '1px solid rgba(6, 182, 212, 0.25)',
-        borderRadius: '12px',
-        padding: '1.25rem',
-        marginBottom: '1.5rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '1rem',
-      }}>
-        <div style={{ flex: 1, minWidth: '280px' }}>
-          <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#38bdf8', fontWeight: '700', marginBottom: '0.25rem' }}>
-            Racine de Merkle Active (Merkle Root Hash)
-          </div>
-          <div style={{ fontFamily: 'monospace', fontSize: '0.9rem', color: '#f1f5f9', wordBreak: 'break-all' }}>
-            {merkleRoot || '0x0000000000000000000000000000000000000000000000000000000000000000'}
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <div style={{
-            background: 'rgba(6, 182, 212, 0.15)',
-            border: '1px solid rgba(6, 182, 212, 0.3)',
-            padding: '0.5rem 0.85rem',
-            borderRadius: '8px',
-            color: '#38bdf8',
-            fontSize: '0.8rem',
-            fontWeight: '700',
-          }}>
-            {transactions.length} Blocs Validés
-          </div>
-        </div>
-      </div>
-
-      {/* ─── Cryptographic Audit Result Banner ────────────────────────────── */}
+      {/* Audit Banner */}
       {auditResult && (
         <div style={{
-          background: auditResult.valid ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.2)',
-          border: `1px solid ${auditResult.valid ? '#10b981' : '#ef4444'}`,
-          borderRadius: '12px',
-          padding: '1.15rem 1.25rem',
-          marginBottom: '1.5rem',
-          color: auditResult.valid ? '#6ee7b7' : '#fca5a5',
+          background: auditResult.valid ? '#14201a' : '#27171a',
+          border: `1px solid ${auditResult.valid ? '#1e3a2b' : '#3d1d23'}`,
+          borderRadius: '6px',
+          padding: '0.75rem 1rem',
+          marginBottom: '1.25rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          fontSize: '0.82rem',
         }}>
-          <div style={{ fontWeight: '800', fontSize: '1rem', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span>{auditResult.valid ? '✅' : '🚨'}</span>
-            <span>{auditResult.valid ? 'RAPPORT D\'AUDIT : 100% INVIOLÉ' : 'ALERTE : ALTÉRATION NON AUTORISÉE DÉTECTÉE !'}</span>
+          <div>
+            <span style={{ fontWeight: '600', color: auditResult.valid ? '#34d399' : '#f87171' }}>
+              {auditResult.valid ? '✓ Cryptographic Audit Trail Verified' : '✕ Tampering Detected!'}
+            </span>
+            <div style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: '0.15rem' }}>
+              {auditResult.reason}
+            </div>
           </div>
-          <div style={{ fontSize: '0.85rem', lineHeight: 1.5 }}>
-            {auditResult.reason}
-          </div>
+          <button
+            onClick={() => setAuditResult(null)}
+            style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}
+          >
+            ✕
+          </button>
         </div>
       )}
 
-      {/* ─── Search & Filter Bar ───────────────────────────────────────────── */}
-      <div style={{ marginBottom: '1.25rem' }}>
-        <input
-          type="text"
-          placeholder="Rechercher par Tx ID, adresse de wallet (0x...), nom de déploiement ou hash SHA-256..."
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '0.75rem 1rem',
-            borderRadius: '10px',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            background: 'rgba(15, 23, 42, 0.8)',
-            color: '#fff',
-            fontSize: '0.88rem',
-            boxSizing: 'border-box',
-          }}
-        />
-      </div>
-
-      {/* ─── Transaction Blocks List ───────────────────────────────────────── */}
+      {/* ─── Ledger Table ──────────────────────────────────────────────────── */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
-          Lecture du registre immudb...
+        <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b', fontSize: '0.875rem' }}>
+          Loading immudb ledger...
         </div>
       ) : filtered.length === 0 ? (
         <div style={{
-          textAlign: 'center',
+          background: '#111318',
+          border: '1px solid #1f242d',
+          borderRadius: '8px',
           padding: '3rem 1.5rem',
-          color: '#94a3b8',
-          background: 'rgba(0,0,0,0.2)',
-          borderRadius: '12px',
+          textAlign: 'center',
+          color: '#64748b',
+          fontSize: '0.85rem',
         }}>
-          Aucune transaction ne correspond à votre filtre.
+          No ledger transactions found.
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {filtered.slice().reverse().map(tx => {
-            const isExpanded = expandedTx === tx.txId;
-            return (
-              <div
-                key={tx.txId}
-                style={{
-                  background: tx.tampered ? 'rgba(239, 68, 68, 0.12)' : 'rgba(15, 23, 42, 0.6)',
-                  border: tx.tampered ? '1.5px solid #ef4444' : '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: '12px',
-                  padding: '1.25rem',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                {/* Block header */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '0.85rem',
-                  flexWrap: 'wrap',
-                  gap: '0.65rem',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <span style={{
-                      background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
-                      color: '#fff',
-                      padding: '0.25rem 0.65rem',
-                      borderRadius: '8px',
-                      fontWeight: '800',
-                      fontSize: '0.82rem',
-                    }}>
-                      Bloc #{tx.txId}
-                    </span>
-                    <span style={{ fontWeight: '700', fontSize: '1rem', color: '#f8fafc' }}>
-                      {tx.payload?.name || 'Déploiement K3s'}
-                    </span>
-                    <span style={{
-                      background: 'rgba(255,255,255,0.08)',
-                      color: '#cbd5e1',
-                      padding: '0.15rem 0.5rem',
-                      borderRadius: '4px',
-                      fontSize: '0.72rem',
-                    }}>
-                      {tx.type}
-                    </span>
-                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                      {new Date(tx.timestamp).toLocaleString()}
-                    </span>
-                  </div>
+        <div style={{
+          background: '#111318',
+          border: '1px solid #1f242d',
+          borderRadius: '8px',
+          overflow: 'hidden',
+        }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
+            <thead>
+              <tr style={{ background: '#0d0f14', borderBottom: '1px solid #1f242d', color: '#64748b' }}>
+                <th style={{ padding: '0.75rem 1rem', fontWeight: '500' }}>Tx ID</th>
+                <th style={{ padding: '0.75rem 1rem', fontWeight: '500' }}>Type</th>
+                <th style={{ padding: '0.75rem 1rem', fontWeight: '500' }}>Workload</th>
+                <th style={{ padding: '0.75rem 1rem', fontWeight: '500' }}>Signer</th>
+                <th style={{ padding: '0.75rem 1rem', fontWeight: '500' }}>Block Hash</th>
+                <th style={{ padding: '0.75rem 1rem', fontWeight: '500' }}>Quorum</th>
+                <th style={{ padding: '0.75rem 1rem', fontWeight: '500', textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(tx => {
+                const isExpanded = expandedTx === tx.txId;
+                const isDeploy = tx.type === 'DEPLOY';
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{
-                      background: tx.consensus?.quorumReached ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                      color: tx.consensus?.quorumReached ? '#34d399' : '#f87171',
-                      padding: '0.25rem 0.65rem',
-                      borderRadius: '6px',
-                      fontSize: '0.75rem',
-                      fontWeight: '700',
-                    }}>
-                      Raft Quorum: {tx.consensus?.positiveVotes}/{tx.consensus?.totalNodes} Pis
-                    </span>
-
-                    <button
-                      onClick={() => handleSimulateTamper(tx.txId)}
+                return (
+                  <React.Fragment key={tx.txId}>
+                    <tr
                       style={{
-                        background: 'rgba(239, 68, 68, 0.15)',
-                        border: '1px solid rgba(239, 68, 68, 0.3)',
-                        color: '#f87171',
-                        padding: '0.3rem 0.65rem',
-                        borderRadius: '6px',
-                        fontSize: '0.75rem',
-                        fontWeight: '600',
-                        cursor: 'pointer',
+                        borderBottom: '1px solid #181b22',
+                        transition: 'background 0.15s',
                       }}
-                      title="Simuler une altération illégitime par un admin SSH sur cette ligne de la base"
+                      onMouseOver={e => (e.currentTarget.style.background = '#151820')}
+                      onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
                     >
-                      🧪 Simuler Altération
-                    </button>
+                      <td style={{ padding: '0.85rem 1rem', fontWeight: '600', color: '#f8fafc' }}>
+                        #{tx.txId}
+                      </td>
 
-                    <button
-                      onClick={() => setExpandedTx(isExpanded ? null : tx.txId)}
-                      style={{
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        color: '#cbd5e1',
-                        padding: '0.3rem 0.65rem',
-                        borderRadius: '6px',
-                        fontSize: '0.75rem',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {isExpanded ? 'Réduire ▲' : 'Preuves Merkle ▼'}
-                    </button>
-                  </div>
-                </div>
+                      <td style={{ padding: '0.85rem 1rem' }}>
+                        <span style={{
+                          padding: '0.15rem 0.45rem',
+                          borderRadius: '4px',
+                          fontSize: '0.72rem',
+                          fontWeight: '600',
+                          background: isDeploy ? '#172554' : '#201618',
+                          color: isDeploy ? '#60a5fa' : '#f87171',
+                        }}>
+                          {tx.type}
+                        </span>
+                      </td>
 
-                {/* Hashes and addresses summary */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                  gap: '0.65rem',
-                  fontSize: '0.8rem',
-                  fontFamily: 'monospace',
-                }}>
-                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.6rem 0.85rem', borderRadius: '8px' }}>
-                    <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>Wallet Signataire (ecrecover) :</div>
-                    <div style={{ color: '#38bdf8', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {tx.signerAddress}
-                    </div>
-                  </div>
+                      <td style={{ padding: '0.85rem 1rem', color: '#f1f5f9' }}>
+                        {tx.payload?.name || '—'}
+                      </td>
 
-                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.6rem 0.85rem', borderRadius: '8px' }}>
-                    <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>Hash du Bloc SHA-256 :</div>
-                    <div style={{ color: '#a78bfa', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {tx.blockHash}
-                    </div>
-                  </div>
+                      <td style={{ padding: '0.85rem 1rem', fontFamily: 'monospace', color: '#94a3b8' }}>
+                        {tx.signerAddress?.length > 12 ? `${tx.signerAddress.slice(0, 6)}...${tx.signerAddress.slice(-4)}` : tx.signerAddress}
+                      </td>
 
-                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.6rem 0.85rem', borderRadius: '8px' }}>
-                    <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>Hash Bloc Précédent (Chaîne) :</div>
-                    <div style={{ color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {tx.previousHash}
-                    </div>
-                  </div>
+                      <td style={{ padding: '0.85rem 1rem', fontFamily: 'monospace', color: '#64748b' }}>
+                        {tx.blockHash?.slice(0, 14)}...
+                      </td>
 
-                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.6rem 0.85rem', borderRadius: '8px' }}>
-                    <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>Image & Ressources K3s :</div>
-                    <div style={{ color: '#34d399' }}>
-                      {tx.payload?.image} • {tx.payload?.ramMb}MB RAM • {tx.payload?.cpu} CPU
-                    </div>
-                  </div>
-                </div>
+                      <td style={{ padding: '0.85rem 1rem', color: '#34d399' }}>
+                        {tx.consensus?.positiveVotes || 3}/{tx.consensus?.totalNodes || 3}
+                      </td>
 
-                {/* Expanded Merkle & Raft details */}
-                {isExpanded && (
-                  <div style={{
-                    marginTop: '1rem',
-                    paddingTop: '1rem',
-                    borderTop: '1px solid rgba(255,255,255,0.06)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.75rem',
-                    fontSize: '0.78rem',
-                  }}>
-                    <div>
-                      <strong style={{ color: '#06b6d4' }}>Preuve de Signature Cryptographique :</strong>
-                      <div style={{ fontFamily: 'monospace', color: '#cbd5e1', background: 'rgba(0,0,0,0.4)', padding: '0.5rem', borderRadius: '6px', wordBreak: 'break-all', marginTop: '0.25rem' }}>
-                        {tx.signature}
-                      </div>
-                    </div>
+                      <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', gap: '0.4rem' }}>
+                          <button
+                            onClick={() => setExpandedTx(isExpanded ? null : tx.txId)}
+                            style={{
+                              background: '#181b22',
+                              border: '1px solid #272d38',
+                              color: '#94a3b8',
+                              padding: '0.25rem 0.5rem',
+                              borderRadius: '4px',
+                              fontSize: '0.75rem',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {isExpanded ? 'Hide' : 'Details'}
+                          </button>
 
-                    <div>
-                      <strong style={{ color: '#06b6d4' }}>Détails des Votes du Quorum Raft (Raspberry Pis) :</strong>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.5rem', marginTop: '0.35rem' }}>
-                        {(tx.consensus?.votes || []).map(v => (
-                          <div key={v.nodeId} style={{ background: 'rgba(0,0,0,0.3)', padding: '0.5rem', borderRadius: '6px' }}>
-                            <div style={{ fontWeight: '700', color: '#38bdf8' }}>{v.nodeId}</div>
-                            <div style={{ color: v.vote ? '#34d399' : '#f87171' }}>Vote: {v.vote ? 'YES (Accepté)' : 'NO'}</div>
-                            <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{v.reason}</div>
+                          <button
+                            onClick={() => handleSimulateTamper(tx.txId)}
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid #3d1d23',
+                              color: '#f87171',
+                              padding: '0.25rem 0.5rem',
+                              borderRadius: '4px',
+                              fontSize: '0.75rem',
+                              cursor: 'pointer',
+                            }}
+                            title="Simulate state modification to test Merkle verification"
+                          >
+                            Tamper Test
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    {/* Expanded Detail Row */}
+                    {isExpanded && (
+                      <tr style={{ background: '#0d0f14', borderBottom: '1px solid #1f242d' }}>
+                        <td colSpan={7} style={{ padding: '1rem 1.25rem' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.78rem' }}>
+                            <div>
+                              <div style={{ color: '#64748b', marginBottom: '0.25rem' }}>Cryptographic Hashes</div>
+                              <div style={{ fontFamily: 'monospace', color: '#cbd5e1', lineHeight: 1.6 }}>
+                                <div>Previous: {tx.previousHash}</div>
+                                <div>Block: {tx.blockHash}</div>
+                                <div>Payload: {tx.payloadHash}</div>
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ color: '#64748b', marginBottom: '0.25rem' }}>Client Signature (secp256k1)</div>
+                              <div style={{ fontFamily: 'monospace', color: '#cbd5e1', wordBreak: 'break-all' }}>
+                                {tx.signature}
+                              </div>
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
