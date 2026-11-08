@@ -202,6 +202,9 @@ echo "  - Cloudflare WARP & Tunnel: ACTIVE                                  "
 echo "  - Blockchain API:  port 8080 (serves https://bc.aslouneyahya.com)   "
 echo "  - immudb Ledger:   port 3322 (RUNNING)                              "
 echo "  - K3s Control:     port 6443 (serves https://k3s.aslouneyahya.com)  "
+if [ -f /var/lib/rancher/k3s/server/node-token ]; then
+    echo "  - Full Join Token: $(cat /var/lib/rancher/k3s/server/node-token)"
+fi
 echo "======================================================================"
 echo ""
 echo "Check K3s status:    sudo kubectl get nodes"
