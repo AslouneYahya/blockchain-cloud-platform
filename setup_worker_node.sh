@@ -2,7 +2,7 @@
 # ==============================================================================
 # setup_worker_node.sh — Zero-Config Worker Node Setup for Raspberry Pis
 # ALL TOKENS ARE HARDCODED:
-# - Cloudflare Tunnel Token
+# - Cloudflare Tunnel Token (same tunnel as Master)
 # - K3s Cluster Secret Token
 # - Target Master: https://k3s.aslouneyahya.com
 # ==============================================================================
@@ -13,7 +13,7 @@ CLOUDFLARE_TOKEN="eyJhIjoiODcwZWRiNzc5M2IyYTc2OGMyZmE2ZGRjYTBlOGYzYmEiLCJ0IjoiNG
 MASTER_ENDPOINT="https://k3s.aslouneyahya.com"
 
 echo "======================================================================"
-echo "  [1/4] Installing & Activating Cloudflare WARP                       "
+echo "  [1/3] Installing & Activating Cloudflare WARP and Tunnel            "
 echo "======================================================================"
 RELEASE=$(lsb_release -cs 2>/dev/null || grep VERSION_CODENAME /etc/os-release | cut -d= -f2 || echo "bullseye")
 if [ "$RELEASE" = "bullseye" ]; then
@@ -42,16 +42,14 @@ if [ -f /tmp/cloudflare-warp.deb ]; then
     warp-cli --accept-tos connect 2>/dev/null || true
 fi
 
-echo "======================================================================"
-echo "  [2/4] Installing cloudflared & Connecting to Cluster Tunnel         "
-echo "======================================================================"
 if [ ! -f /usr/local/bin/cloudflared ]; then
     echo "Downloading cloudflared ARM64..."
     sudo curl -# -L -o /usr/local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64
     sudo chmod +x /usr/local/bin/cloudflared
 fi
 
-cat << EOF | sudo tee /etc/systemd/system/cloudflared.service > /dev/null
+if ! systemctl is-active --quiet cloudflared.service; then
+    cat << EOF | sudo tee /etc/systemd/system/cloudflared.service > /dev/null
 [Unit]
 Description=Cloudflare Tunnel
 After=network.target network-online.target warp-svc.service
@@ -67,12 +65,14 @@ ExecStart=/usr/local/bin/cloudflared tunnel --no-autoupdate run --token $CLOUDFL
 [Install]
 WantedBy=multi-user.target
 EOF
-
-sudo systemctl daemon-reload
-sudo systemctl enable --now cloudflared.service
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now cloudflared.service
+else
+    echo "✓ cloudflared.service is active and healthy!"
+fi
 
 echo "======================================================================"
-echo "  [3/4] Configuring Linux Kernel cgroups on Worker Pi                 "
+echo "  [2/3] Configuring Linux Kernel cgroups on Worker Pi                 "
 echo "======================================================================"
 CMDLINE_FILE="/boot/firmware/cmdline.txt"
 [ ! -f "$CMDLINE_FILE" ] && CMDLINE_FILE="/boot/cmdline.txt"
@@ -84,11 +84,8 @@ if [ -f "$CMDLINE_FILE" ]; then
     fi
 fi
 
-sudo apt-get update -y
-sudo apt-get install -y curl ca-certificates iptables
-
 echo "======================================================================"
-echo "  [4/4] Joining K3s Cluster via $MASTER_ENDPOINT                      "
+echo "  [3/3] Joining K3s Cluster via $MASTER_ENDPOINT                      "
 echo "======================================================================"
 NODE_HOSTNAME=$(hostname)
 curl -sfL https://get.k3s.io | K3S_URL="${MASTER_ENDPOINT}" K3S_TOKEN="${CLUSTER_TOKEN}" sh -s - \
