@@ -1,49 +1,17 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# setup_master_node.sh — Non-Destructive Master Node Setup for Raspberry Pi
-# IMPORTANT:
-# - PRESERVES existing inpt-master-node.service (port 5000 / master.aslouneyahya.com)
-# - PRESERVES existing cloudflared tunnel
-# - ADDS K3s Control Plane (port 6443)
-# - ADDS immudb Immutable Ledger (port 3322)
-# - ADDS ChainOps Blockchain Daemon (port 8080)
+# setup_master_node.sh — Standalone Blockchain Master Node Setup (Raspberry Pi)
+# Runs:
+# 1. K3s Control Plane Server (Port 6443) -> for k3s.aslouneyahya.com
+# 2. immudb Immutable Ledger Server (Port 3322)
+# 3. ChainOps Go Blockchain Daemon (Port 8080) -> for bc.aslouneyahya.com
 # ==============================================================================
 set -e
 
-TARGET_DIR="$HOME/cloud-platform-inpt"
-REPO_URL="https://github.com/AslouneYahya/blockchain-cloud-platform.git"
+INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "======================================================================"
-echo "  [1/5] Updating Repository Files                                     "
-echo "======================================================================"
-if [ -d "$TARGET_DIR" ]; then
-    echo "Updating existing repository in $TARGET_DIR..."
-    cd "$TARGET_DIR"
-    git remote set-url origin "$REPO_URL" 2>/dev/null || true
-    git pull origin main || true
-else
-    echo "Cloning repository..."
-    git clone "$REPO_URL" "$TARGET_DIR"
-    cd "$TARGET_DIR"
-fi
-
-echo "======================================================================"
-echo "  [2/5] Preserving Existing Services                                  "
-echo "======================================================================"
-if systemctl is-active --quiet inpt-master-node.service; then
-    echo "✓ Existing inpt-master-node.service is RUNNING on port 5000. Leaving intact!"
-else
-    echo "Notice: inpt-master-node.service not currently active, continuing..."
-fi
-
-if systemctl is-active --quiet cloudflared.service; then
-    echo "✓ Existing cloudflared.service is RUNNING. Leaving intact!"
-else
-    echo "Notice: cloudflared.service not currently active, continuing..."
-fi
-
-echo "======================================================================"
-echo "  [3/5] Configuring Linux Kernel cgroups for K3s                      "
+echo "  [1/4] Configuring Linux Kernel cgroups for K3s                      "
 echo "======================================================================"
 CMDLINE_FILE="/boot/firmware/cmdline.txt"
 [ ! -f "$CMDLINE_FILE" ] && CMDLINE_FILE="/boot/cmdline.txt"
@@ -59,7 +27,7 @@ sudo apt-get update -y
 sudo apt-get install -y curl ca-certificates iptables
 
 echo "======================================================================"
-echo "  [4/5] Installing K3s Control Plane Server (Port 6443)               "
+echo "  [2/4] Installing K3s Control Plane Server (Port 6443)               "
 echo "======================================================================"
 curl -sfL https://get.k3s.io | sh -s - \
     --write-kubeconfig-mode 644 \
@@ -67,7 +35,7 @@ curl -sfL https://get.k3s.io | sh -s - \
     --node-name "pi-node-01"
 
 echo "======================================================================"
-echo "  [5/5] Installing immudb & ChainOps Blockchain Daemon                "
+echo "  [3/4] Installing & Starting immudb Ledger Server (Port 3322)        "
 echo "======================================================================"
 IMMUDB_VERSION="v1.9.2"
 sudo mkdir -p /var/lib/immudb /opt/chainops/data
@@ -100,9 +68,11 @@ EOF'
 sudo systemctl daemon-reload
 sudo systemctl enable --now immudb.service
 
-# Setup ChainOps Daemon (Port 8080)
-if [ -f "$TARGET_DIR/cluster-daemon/daemon-arm64" ]; then
-    sudo cp "$TARGET_DIR/cluster-daemon/daemon-arm64" /opt/chainops/chainops-daemon
+echo "======================================================================"
+echo "  [4/4] Installing & Starting ChainOps Go Daemon (Port 8080)          "
+echo "======================================================================"
+if [ -f "$INSTALL_DIR/cluster-daemon/daemon-arm64" ]; then
+    sudo cp "$INSTALL_DIR/cluster-daemon/daemon-arm64" /opt/chainops/chainops-daemon
     sudo chmod +x /opt/chainops/chainops-daemon
 fi
 
@@ -138,12 +108,10 @@ fi
 
 echo ""
 echo "======================================================================"
-echo "  MASTER NODE READY (ALL SERVICES COEXISTING IN HARMONY)              "
-echo "  - Existing inpt-master-node:  port 5000 (UNTOUCHED / RUNNING)       "
-echo "  - Existing cloudflared:       running for master.aslouneyahya.com   "
-echo "  - ChainOps Blockchain Daemon: port 8080 (HEALTHY)                   "
-echo "  - immudb Merkle Ledger:       port 3322 (RUNNING)                   "
-echo "  - K3s Control Plane Server:   port 6443 (READY for k3s domain)      "
+echo "  BLOCKCHAIN MASTER NODE READY!                                       "
+echo "  - Blockchain API:  port 8080 (serves https://bc.aslouneyahya.com)   "
+echo "  - immudb Ledger:   port 3322                                        "
+echo "  - K3s Control:     port 6443 (serves https://k3s.aslouneyahya.com)  "
 echo "======================================================================"
 echo ""
 echo ">> K3S NODE TOKEN FOR WORKER PIS:"
