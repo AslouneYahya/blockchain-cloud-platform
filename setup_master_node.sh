@@ -1,17 +1,82 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# setup_master_node.sh — Standalone Blockchain Master Node Setup (Raspberry Pi)
-# Runs:
-# 1. K3s Control Plane Server (Port 6443) -> for k3s.aslouneyahya.com
-# 2. immudb Immutable Ledger Server (Port 3322)
-# 3. ChainOps Go Blockchain Daemon (Port 8080) -> for bc.aslouneyahya.com
+# setup_master_node.sh — Complete Standalone Master Node Setup (Raspberry Pi)
+# 1. Installs & activates Cloudflare WARP (warp-svc & warp-cli)
+# 2. Installs & starts cloudflared using tunnel token (if not already running)
+# 3. Configures Linux cgroups for K3s
+# 4. Installs K3s Control Plane Server (Port 6443) -> for k3s.aslouneyahya.com
+# 5. Installs & starts immudb Immutable Ledger Server (Port 3322)
+# 6. Installs & starts ChainOps Go Blockchain Daemon (Port 8080) -> for bc.aslouneyahya.com
 # ==============================================================================
 set -e
 
 INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CLOUDFLARE_TOKEN="${1:-eyJhIjoiODcwZWRiNzc5M2IyYTc2OGMyZmE2ZGRjYTBlOGYzYmEiLCJ0IjoiNGU2Mzc4NzQtMTRlYi00ZjViLThkMjItNDUyNzMyMTRiZDYyIiwicyI6Ik9EUTBNVGcyTldZdFpXRmlNUzAwTURSbExXRmhOemd0T0RVd01ESXdOalJoTVRaaiJ9}"
 
 echo "======================================================================"
-echo "  [1/4] Configuring Linux Kernel cgroups for K3s                      "
+echo "  [1/6] Installing & Activating Cloudflare WARP                       "
+echo "======================================================================"
+RELEASE=$(lsb_release -cs 2>/dev/null || grep VERSION_CODENAME /etc/os-release | cut -d= -f2 || echo "bullseye")
+if [ "$RELEASE" = "bullseye" ]; then
+    DEB_URL="https://pkg.cloudflareclient.com/pool/bullseye/main/c/cloudflare-warp/cloudflare-warp_2026.3.846.0_arm64.deb"
+else
+    DEB_URL="https://pkg.cloudflareclient.com/pool/bookworm/main/c/cloudflare-warp/cloudflare-warp_2026.8.2115.0_arm64.deb"
+fi
+
+if [ ! -f /tmp/cloudflare-warp.deb ]; then
+    echo "Downloading Cloudflare WARP for $RELEASE..."
+    curl -# -L -o /tmp/cloudflare-warp.deb "$DEB_URL" || true
+fi
+
+if [ -f /tmp/cloudflare-warp.deb ]; then
+    rm -rf /tmp/warp_extract && mkdir -p /tmp/warp_extract
+    dpkg-deb -x /tmp/cloudflare-warp.deb /tmp/warp_extract
+    sudo cp /tmp/warp_extract/bin/warp-svc /bin/warp-svc || true
+    sudo cp /tmp/warp_extract/bin/warp-cli /bin/warp-cli || true
+    sudo chmod +x /bin/warp-svc /bin/warp-cli || true
+    sudo cp /tmp/warp_extract/lib/systemd/system/warp-svc.service /etc/systemd/system/warp-svc.service || true
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now warp-svc || true
+    sleep 3
+    yes | warp-cli --accept-tos register 2>/dev/null || true
+    warp-cli --accept-tos mode warp 2>/dev/null || true
+    warp-cli --accept-tos connect 2>/dev/null || true
+fi
+
+echo "======================================================================"
+echo "  [2/6] Ensuring cloudflared Tunnel Daemon is Active                  "
+echo "======================================================================"
+if [ ! -f /usr/local/bin/cloudflared ]; then
+    echo "Downloading cloudflared ARM64..."
+    sudo curl -# -L -o /usr/local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64
+    sudo chmod +x /usr/local/bin/cloudflared
+fi
+
+if ! systemctl is-active --quiet cloudflared.service; then
+    cat << EOF | sudo tee /etc/systemd/system/cloudflared.service > /dev/null
+[Unit]
+Description=Cloudflare Tunnel
+After=network.target network-online.target warp-svc.service
+Wants=network-online.target warp-svc.service
+
+[Service]
+Type=simple
+TimeoutStartSec=10s
+Restart=always
+RestartSec=5s
+ExecStart=/usr/local/bin/cloudflared tunnel --no-autoupdate run --token $CLOUDFLARE_TOKEN
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now cloudflared.service
+else
+    echo "✓ cloudflared.service is already active and healthy!"
+fi
+
+echo "======================================================================"
+echo "  [3/6] Configuring Linux Kernel cgroups for K3s                      "
 echo "======================================================================"
 CMDLINE_FILE="/boot/firmware/cmdline.txt"
 [ ! -f "$CMDLINE_FILE" ] && CMDLINE_FILE="/boot/cmdline.txt"
@@ -27,7 +92,7 @@ sudo apt-get update -y
 sudo apt-get install -y curl ca-certificates iptables
 
 echo "======================================================================"
-echo "  [2/4] Installing K3s Control Plane Server (Port 6443)               "
+echo "  [4/6] Installing K3s Control Plane Server (Port 6443)               "
 echo "======================================================================"
 curl -sfL https://get.k3s.io | sh -s - \
     --write-kubeconfig-mode 644 \
@@ -35,7 +100,7 @@ curl -sfL https://get.k3s.io | sh -s - \
     --node-name "pi-node-01"
 
 echo "======================================================================"
-echo "  [3/4] Installing & Starting immudb Ledger Server (Port 3322)        "
+echo "  [5/6] Installing & Starting immudb Ledger Server (Port 3322)        "
 echo "======================================================================"
 IMMUDB_VERSION="v1.9.2"
 sudo mkdir -p /var/lib/immudb /opt/chainops/data
@@ -69,7 +134,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now immudb.service
 
 echo "======================================================================"
-echo "  [4/4] Installing & Starting ChainOps Go Daemon (Port 8080)          "
+echo "  [6/6] Installing & Starting ChainOps Go Daemon (Port 8080)          "
 echo "======================================================================"
 if [ -f "$INSTALL_DIR/cluster-daemon/daemon-arm64" ]; then
     sudo cp "$INSTALL_DIR/cluster-daemon/daemon-arm64" /opt/chainops/chainops-daemon
@@ -79,7 +144,7 @@ fi
 sudo bash -c 'cat <<EOF > /etc/systemd/system/chainops-daemon.service
 [Unit]
 Description=ChainOps Blockchain Infrastructure Daemon
-After=network.target immudb.service k3s.service
+After=network.target immudb.service k3s.service cloudflared.service
 
 [Service]
 Type=simple
@@ -108,13 +173,14 @@ fi
 
 echo ""
 echo "======================================================================"
-echo "  BLOCKCHAIN MASTER NODE READY!                                       "
+echo "  MASTER NODE READY!                                                  "
+echo "  - Cloudflare WARP & Tunnel: ACTIVE                                  "
 echo "  - Blockchain API:  port 8080 (serves https://bc.aslouneyahya.com)   "
 echo "  - immudb Ledger:   port 3322                                        "
 echo "  - K3s Control:     port 6443 (serves https://k3s.aslouneyahya.com)  "
 echo "======================================================================"
 echo ""
-echo ">> K3S NODE TOKEN FOR WORKER PIS:"
+echo ">> YOUR K3S NODE TOKEN (Copy this for worker nodes):"
 echo "----------------------------------------------------------------------"
 sudo cat /var/lib/rancher/k3s/server/node-token
 echo "----------------------------------------------------------------------"
