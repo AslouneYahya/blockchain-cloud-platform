@@ -35,10 +35,11 @@ echo "  [3/3] Joining K3s Cluster via $MASTER_ENDPOINT                      "
 echo "======================================================================"
 NODE_HOSTNAME=$(hostname)
 
-# Update existing environment file if present
-if [ -f /etc/systemd/system/k3s-agent.service.env ]; then
-    sudo sed -i 's|K3S_TOKEN=.*|K3S_TOKEN="'"${CLUSTER_TOKEN}"'"|' /etc/systemd/system/k3s-agent.service.env
-fi
+# Stop and wipe stale agent cache to force a fresh TLS handshake with new token
+echo "Cleaning stale K3s agent cache and tokens..."
+sudo systemctl stop k3s-agent.service 2>/dev/null || true
+sudo rm -rf /var/lib/rancher/k3s/agent
+sudo rm -f /etc/systemd/system/k3s-agent.service.env
 
 curl -sfL https://get.k3s.io | K3S_URL="${MASTER_ENDPOINT}" K3S_TOKEN="${CLUSTER_TOKEN}" sh -s - \
     --node-name "${NODE_HOSTNAME}"
