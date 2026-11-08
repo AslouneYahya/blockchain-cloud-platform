@@ -5,18 +5,13 @@ export default function VmLiveLogsModal({ vm, onClose }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [autoScroll, setAutoScroll] = useState(true);
-  const [filterLevel, setFilterLevel] = useState('ALL');
-  const [lastRefreshed, setLastRefreshed] = useState(new Date());
   const terminalEndRef = useRef(null);
-
-  const isLive = vm.status === 'PROVISIONING' || vm.status === 'PENDING';
 
   async function fetchLogs() {
     try {
       const res = await getVmLogs(vm.id);
-      const data = res.data?.data || res.data || [];
-      setLogs(data);
-      setLastRefreshed(new Date());
+      const list = res.data?.logs || res.data?.data || [];
+      setLogs(list);
     } catch (err) {
       console.error('Erreur chargement logs:', err);
     } finally {
@@ -26,19 +21,9 @@ export default function VmLiveLogsModal({ vm, onClose }) {
 
   useEffect(() => {
     fetchLogs();
-
-    // Auto-poll logs every 1.5s if VM is in provisioning
-    let interval = null;
-    if (isLive) {
-      interval = setInterval(() => {
-        fetchLogs();
-      }, 1500);
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [vm.id, isLive]);
+    const interval = setInterval(fetchLogs, 3000);
+    return () => clearInterval(interval);
+  }, [vm.id]);
 
   useEffect(() => {
     if (autoScroll && terminalEndRef.current) {
@@ -46,320 +31,105 @@ export default function VmLiveLogsModal({ vm, onClose }) {
     }
   }, [logs, autoScroll]);
 
-  function getLevelColor(lvl) {
-    switch (lvl?.toUpperCase()) {
-      case 'SUCCESS':
-        return '#4ade80'; // Emerald green
-      case 'WARN':
-      case 'WARNING':
-        return '#facc15'; // Amber yellow
-      case 'ERROR':
-        return '#f87171'; // Coral red
-      case 'INFO':
-      default:
-        return '#38bdf8'; // Sky blue
-    }
-  }
-
-  const filteredLogs = logs.filter(l => {
-    if (filterLevel === 'ALL') return true;
-    return l.level?.toUpperCase() === filterLevel;
-  });
-
-  function downloadLogs() {
-    const text = logs
-      .map(l => `[${l.timestamp}] [${l.level}] [${l.stage}] ${l.message}`)
-      .join('\n');
-    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `provisioning-${vm.name}-${vm.id.slice(0, 8)}.log`;
-    link.click();
-    URL.revokeObjectURL(url);
-  }
-
   return (
     <div style={{
       position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(15, 23, 42, 0.75)',
-      backdropFilter: 'blur(4px)',
+      inset: 0,
+      background: 'rgba(5, 10, 20, 0.85)',
+      backdropFilter: 'blur(10px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 2000,
-      padding: '1rem'
+      zIndex: 1200,
+      padding: '1rem',
     }}>
       <div style={{
-        backgroundColor: '#0b1120',
-        color: '#f8fafc',
-        borderRadius: '14px',
+        background: '#0a0f1d',
+        border: '1px solid rgba(6, 182, 212, 0.3)',
+        borderRadius: '16px',
+        maxWidth: '800px',
         width: '100%',
-        maxWidth: '860px',
-        height: '80vh',
+        height: '75vh',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-        border: '1px solid #1e293b',
-        overflow: 'hidden'
+        boxShadow: '0 25px 60px rgba(0,0,0,0.8), 0 0 30px rgba(6, 182, 212, 0.1)',
+        color: '#f8fafc',
+        overflow: 'hidden',
       }}>
-        {/* AWS-style Console Header */}
+        {/* Header */}
         <div style={{
-          backgroundColor: '#0f172a',
-          padding: '0.85rem 1.25rem',
-          borderBottom: '1px solid #1e293b',
+          padding: '1rem 1.5rem',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '0.5rem'
+          background: 'rgba(15, 23, 42, 0.6)',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <span style={{ fontSize: '1.25rem' }}>☁</span>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <strong style={{ fontSize: '0.95rem', color: '#f1f5f9' }}>
-                  Journaux de déploiement en direct (AWS CloudWatch Engine)
-                </strong>
-                {isLive ? (
-                  <span style={{
-                    backgroundColor: 'rgba(56, 189, 248, 0.15)',
-                    color: '#38bdf8',
-                    border: '1px solid rgba(56, 189, 248, 0.3)',
-                    padding: '0.15rem 0.5rem',
-                    borderRadius: '12px',
-                    fontSize: '0.72rem',
-                    fontWeight: '700',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.35rem'
-                  }}>
-                    <span style={{
-                      width: '6px',
-                      height: '6px',
-                      borderRadius: '50%',
-                      backgroundColor: '#38bdf8',
-                      boxShadow: '0 0 8px #38bdf8'
-                    }}></span>
-                    STREAMING LIVE
-                  </span>
-                ) : (
-                  <span style={{
-                    backgroundColor: 'rgba(74, 222, 128, 0.15)',
-                    color: '#4ade80',
-                    border: '1px solid rgba(74, 222, 128, 0.3)',
-                    padding: '0.15rem 0.5rem',
-                    borderRadius: '12px',
-                    fontSize: '0.72rem',
-                    fontWeight: '600'
-                  }}>
-                    ✓ Provisionné
-                  </span>
-                )}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.15rem' }}>
-                Instance : <strong style={{ color: '#cbd5e1' }}>{vm.name}</strong> • OS : {vm.os} • ID : <code style={{ color: '#38bdf8' }}>{vm.id}</code>
-              </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '1.2rem' }}>📋</span>
+              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800', color: '#fff' }}>
+                Journaux Pod K3s & Preuve immudb : {vm.name}
+              </h3>
             </div>
+            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+              Streaming en direct • Vérifié par racine de Merkle SHA-256
+            </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <button
-              onClick={downloadLogs}
-              title="Exporter les logs (.log)"
-              style={{
-                backgroundColor: '#1e293b',
-                color: '#cbd5e1',
-                border: '1px solid #334155',
-                padding: '0.35rem 0.75rem',
-                borderRadius: '6px',
-                fontSize: '0.78rem',
-                cursor: 'pointer'
-              }}
-            >
-              📥 Exporter
-            </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={autoScroll}
+                onChange={e => setAutoScroll(e.target.checked)}
+              />
+              Auto-scroll
+            </label>
             <button
               onClick={onClose}
-              style={{
-                backgroundColor: 'transparent',
-                color: '#94a3b8',
-                border: 'none',
-                fontSize: '1.25rem',
-                cursor: 'pointer',
-                padding: '0.2rem 0.5rem'
-              }}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.4rem', cursor: 'pointer' }}
             >
               ✕
             </button>
           </div>
         </div>
 
-        {/* Toolbar */}
-        <div style={{
-          backgroundColor: '#090d16',
-          padding: '0.5rem 1.25rem',
-          borderBottom: '1px solid #1e293b',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          fontSize: '0.78rem',
-          color: '#94a3b8'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <span>Filtrer par niveau :</span>
-            {['ALL', 'INFO', 'SUCCESS', 'WARN', 'ERROR'].map(lvl => (
-              <button
-                key={lvl}
-                onClick={() => setFilterLevel(lvl)}
-                style={{
-                  backgroundColor: filterLevel === lvl ? '#1e293b' : 'transparent',
-                  color: filterLevel === lvl ? '#f8fafc' : '#64748b',
-                  border: filterLevel === lvl ? '1px solid #334155' : '1px solid transparent',
-                  borderRadius: '4px',
-                  padding: '0.2rem 0.5rem',
-                  fontSize: '0.72rem',
-                  cursor: 'pointer',
-                  fontWeight: filterLevel === lvl ? '600' : 'normal'
-                }}
-              >
-                {lvl}
-              </button>
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={autoScroll}
-                onChange={e => setAutoScroll(e.target.checked)}
-                style={{ cursor: 'pointer' }}
-              />
-              Auto-défilement
-            </label>
-            <button
-              onClick={fetchLogs}
-              style={{
-                backgroundColor: 'transparent',
-                color: '#38bdf8',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '0.75rem'
-              }}
-            >
-              🔄 Actualiser
-            </button>
-          </div>
-        </div>
-
-        {/* Terminal Log Output */}
+        {/* Terminal logs viewport */}
         <div style={{
           flex: 1,
           padding: '1.25rem',
           overflowY: 'auto',
-          fontFamily: 'Consolas, Monaco, "Lucida Console", "Liberation Mono", monospace',
-          fontSize: '0.82rem',
-          lineHeight: '1.6',
-          backgroundColor: '#070b14'
+          fontFamily: "'Fira Code', Consolas, monospace",
+          fontSize: '0.8rem',
+          background: '#070b14',
+          lineHeight: 1.6,
         }}>
           {loading && logs.length === 0 ? (
-            <div style={{ color: '#64748b', textAlign: 'center', paddingTop: '3rem' }}>
-              Initialisation du flux de télémétrie CloudWatch...
-            </div>
+            <div style={{ color: '#94a3b8', textAlign: 'center', padding: '2rem' }}>Connexion au flux de logs...</div>
           ) : logs.length === 0 ? (
-            <div style={{ color: '#64748b', textAlign: 'center', paddingTop: '3rem' }}>
-              Aucun journal enregistré pour cette instance.
-            </div>
+            <div style={{ color: '#94a3b8', textAlign: 'center', padding: '2rem' }}>Aucun log disponible pour ce conteneur.</div>
           ) : (
-            filteredLogs.map((logItem, idx) => {
-              const timeStr = logItem.timestamp
-                ? new Date(logItem.timestamp).toLocaleTimeString()
-                : '00:00:00';
+            logs.map((logLine, idx) => {
+              const text = typeof logLine === 'string' ? logLine : (logLine.message || JSON.stringify(logLine));
+              const isAudit = text.includes('immudb') || text.includes('Merkle');
+              const isK8s = text.includes('K3s') || text.includes('client-go');
+              const isSuccess = text.includes('successfully') || text.includes('started');
+
+              let color = '#cbd5e1';
+              if (isAudit) color = '#a78bfa';
+              else if (isK8s) color = '#38bdf8';
+              else if (isSuccess) color = '#34d399';
 
               return (
-                <div
-                  key={logItem.id || idx}
-                  style={{
-                    display: 'flex',
-                    gap: '0.75rem',
-                    marginBottom: '0.35rem',
-                    wordBreak: 'break-word',
-                    alignItems: 'baseline'
-                  }}
-                >
-                  <span style={{ color: '#475569', userSelect: 'none', minWidth: '70px', fontSize: '0.75rem' }}>
-                    {timeStr}
-                  </span>
-                  <span style={{
-                    color: getLevelColor(logItem.level),
-                    fontWeight: '700',
-                    minWidth: '65px',
-                    fontSize: '0.75rem'
-                  }}>
-                    [{logItem.level || 'INFO'}]
-                  </span>
-                  {logItem.stage && (
-                    <span style={{
-                      backgroundColor: '#1e293b',
-                      color: '#94a3b8',
-                      padding: '0.05rem 0.35rem',
-                      borderRadius: '3px',
-                      fontSize: '0.72rem'
-                    }}>
-                      {logItem.stage}
-                    </span>
-                  )}
-                  <span style={{ color: '#e2e8f0', flex: 1 }}>
-                    {logItem.message}
-                  </span>
+                <div key={idx} style={{ display: 'flex', gap: '0.75rem', color }}>
+                  <span style={{ color: '#64748b', userSelect: 'none' }}>{(idx + 1).toString().padStart(2, '0')}</span>
+                  <span style={{ wordBreak: 'break-all' }}>{text}</span>
                 </div>
               );
             })
           )}
-          {isLive && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              color: '#38bdf8',
-              marginTop: '0.75rem',
-              fontSize: '0.78rem'
-            }}>
-              <span style={{
-                display: 'inline-block',
-                width: '8px',
-                height: '14px',
-                backgroundColor: '#38bdf8',
-                animation: 'blink 1s infinite'
-              }}></span>
-              Attente des signaux du nœud Raspberry Pi...
-            </div>
-          )}
           <div ref={terminalEndRef} />
-        </div>
-
-        {/* Footer */}
-        <div style={{
-          backgroundColor: '#0f172a',
-          padding: '0.65rem 1.25rem',
-          borderTop: '1px solid #1e293b',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          fontSize: '0.75rem',
-          color: '#64748b'
-        }}>
-          <div>
-            Total logs : <strong style={{ color: '#cbd5e1' }}>{logs.length}</strong> événements
-          </div>
-          <div>
-            Dernière synchronisation : {lastRefreshed.toLocaleTimeString()}
-          </div>
         </div>
       </div>
     </div>

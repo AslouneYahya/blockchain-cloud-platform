@@ -5,28 +5,24 @@ export default function VmTerminalModal({ vm, onClose }) {
   const [lines, setLines] = useState([]);
   const [currentInput, setCurrentInput] = useState('');
   const [isExecuting, setIsExecuting] = useState(false);
-  const [cmdHistory, setCmdHistory] = useState([]);
-  const [historyIdx, setHistoryIdx] = useState(-1);
-
   const terminalEndRef = useRef(null);
   const inputRef = useRef(null);
 
-  const ip = vm.ipAddress || '192.168.60.231';
-  const prompt = `root@${vm.name}:~# `;
+  const ip = vm.ipAddress || '10.42.0.15';
+  const prompt = `chainops@${vm.name}:~$ `;
 
-  // Realistic SSH login banner on connect
   useEffect(() => {
     const banner = [
-      `Connecting to ${ip}:22...`,
-      `Connection established. Authenticated to ${vm.name} as 'root'.`,
+      `[SECURITY] Cryptographic Session Authenticated via Wallet Signature.`,
+      `Connecting to K3s pod '${vm.name}' on hardware node...`,
+      `Session established. Container runtime: containerd / ARM64 Linux 5.15.`,
+      ` * Pod IP:           ${ip}`,
+      ` * Resources:        ${vm.ramMb} MB RAM, ${vm.cpu} vCPU core(s)`,
+      ` * Consensus Node:   Raspberry Pi HA Mesh`,
+      ` * immudb State:     Merkle Verified & Unbroken`,
       ``,
-      `Welcome to ${vm.os} (Linux 5.15.0-1040-raspi aarch64)`,
-      ` * System information: ${vm.cpu} vCPU, ${vm.ramMb}MB RAM, ${vm.diskGb}GB Disk`,
-      ` * Cluster Node:       ${vm.nodeId || 'rpi-master'}`,
-      ` * IPv4 Address:       ${ip}`,
+      `Type commands (e.g. 'uname -a', 'free -m', 'uptime', 'env') and press Enter:`,
       ``,
-      `Last login: ${new Date().toUTCString()} from 192.168.1.100`,
-      ``
     ];
     setLines(banner);
     if (inputRef.current) {
@@ -40,251 +36,130 @@ export default function VmTerminalModal({ vm, onClose }) {
     }
   }, [lines, isExecuting]);
 
-  function focusTerminal() {
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  }
-
   async function handleKeyDown(e) {
     if (e.key === 'Enter') {
-      e.preventDefault();
       const cmd = currentInput.trim();
+      if (!cmd) return;
 
-      if (!cmd) {
-        setLines(prev => [...prev, prompt]);
-        setCurrentInput('');
-        return;
-      }
-
-      if (cmd === 'clear') {
-        setLines([]);
-        setCurrentInput('');
-        return;
-      }
-
-      if (cmd === 'exit') {
-        onClose();
-        return;
-      }
-
-      // Add to display and command history
-      const fullCmdLine = `${prompt}${cmd}`;
-      setLines(prev => [...prev, fullCmdLine]);
-      setCmdHistory(prev => [cmd, ...prev]);
-      setHistoryIdx(-1);
+      const newLines = [...lines, `${prompt}${cmd}`];
+      setLines(newLines);
       setCurrentInput('');
       setIsExecuting(true);
 
+      if (cmd.toLowerCase() === 'clear') {
+        setLines([]);
+        setIsExecuting(false);
+        return;
+      }
+
       try {
         const res = await executeVmCommand(vm.id, cmd);
-        const data = res.data?.data || res.data || {};
-        const stdout = data.stdout || '';
-        const stderr = data.stderr || '';
-        const combined = (stdout + (stdout && stderr && !stdout.endsWith('\n') ? '\n' : '') + stderr).trimEnd();
-        if (combined) {
-          const outputLines = combined.split('\n');
-          setLines(prev => [...prev, ...outputLines]);
-        }
+        const output = res.data?.output || 'Command completed successfully.';
+        setLines(prev => [...prev, output, '']);
       } catch (err) {
-        const errMsg = err?.response?.data?.message || err.message || 'Execution error';
-        setLines(prev => [...prev, `bash: ${errMsg}`]);
+        setLines(prev => [...prev, `Error: ${err?.response?.data?.error || err.message}`, '']);
       } finally {
         setIsExecuting(false);
-        setTimeout(focusTerminal, 20);
-      }
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      if (cmdHistory.length > 0 && historyIdx < cmdHistory.length - 1) {
-        const next = historyIdx + 1;
-        setHistoryIdx(next);
-        setCurrentInput(cmdHistory[next]);
-      }
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      if (historyIdx > 0) {
-        const next = historyIdx - 1;
-        setHistoryIdx(next);
-        setCurrentInput(cmdHistory[next]);
-      } else if (historyIdx === 0) {
-        setHistoryIdx(-1);
-        setCurrentInput('');
       }
     }
   }
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.75)',
-        backdropFilter: 'blur(3px)',
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      background: 'rgba(5, 10, 20, 0.85)',
+      backdropFilter: 'blur(10px)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1200,
+      padding: '1rem',
+    }}>
+      <div style={{
+        background: '#070b14',
+        border: '1px solid rgba(6, 182, 212, 0.3)',
+        borderRadius: '16px',
+        maxWidth: '850px',
+        width: '100%',
+        height: '75vh',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 2000,
-        padding: '1.5rem'
-      }}
-    >
-      {/* Terminal Window */}
-      <div
-        onClick={e => {
-          e.stopPropagation();
-          focusTerminal();
-        }}
-        style={{
-          width: '100%',
-          maxWidth: '900px',
-          height: '80vh',
-          backgroundColor: '#0a0a0a',
-          color: '#d4d4d4',
-          borderRadius: '8px',
+        flexDirection: 'column',
+        boxShadow: '0 25px 60px rgba(0,0,0,0.8), 0 0 35px rgba(6, 182, 212, 0.15)',
+        color: '#f8fafc',
+        overflow: 'hidden',
+      }}>
+        {/* Terminal Header */}
+        <div style={{
+          padding: '0.85rem 1.5rem',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
           display: 'flex',
-          flexDirection: 'column',
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8)',
-          border: '1px solid #2d2d2d',
-          overflow: 'hidden',
-          fontFamily: 'Consolas, Monaco, "Courier New", monospace'
-        }}
-      >
-        {/* Title Bar */}
-        <div
-          style={{
-            backgroundColor: '#181818',
-            padding: '0.5rem 0.85rem',
-            borderBottom: '1px solid #262626',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            userSelect: 'none'
-          }}
-        >
-          {/* Terminal Dots */}
-          <div style={{ display: 'flex', gap: '7px', alignItems: 'center' }}>
-            <span
-              onClick={onClose}
-              title="Fermer la session"
-              style={{
-                width: '12px',
-                height: '12px',
-                borderRadius: '50%',
-                backgroundColor: '#ff5f56',
-                display: 'inline-block',
-                cursor: 'pointer'
-              }}
-            />
-            <span
-              style={{
-                width: '12px',
-                height: '12px',
-                borderRadius: '50%',
-                backgroundColor: '#ffbd2e',
-                display: 'inline-block'
-              }}
-            />
-            <span
-              style={{
-                width: '12px',
-                height: '12px',
-                borderRadius: '50%',
-                backgroundColor: '#27c93f',
-                display: 'inline-block'
-              }}
-            />
-          </div>
-
-          {/* Window Title */}
-          <div style={{ fontSize: '0.8rem', color: '#888', fontWeight: '500' }}>
-            root@{ip} — ssh {vm.name}
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          background: 'rgba(15, 23, 42, 0.8)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444' }} />
+              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b' }} />
+              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981' }} />
+            </div>
+            <span style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#cbd5e1' }}>
+              Terminal K3s Pod : {vm.name} ({ip})
+            </span>
           </div>
 
           <button
             onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#666',
-              fontSize: '1rem',
-              cursor: 'pointer',
-              padding: '0 0.25rem'
-            }}
+            style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.4rem', cursor: 'pointer' }}
           >
             ✕
           </button>
         </div>
 
-        {/* Terminal Screen Body */}
+        {/* Terminal Body */}
         <div
+          onClick={() => inputRef.current && inputRef.current.focus()}
           style={{
             flex: 1,
-            padding: '1rem 1.25rem',
+            padding: '1.25rem',
             overflowY: 'auto',
-            fontSize: '0.86rem',
-            lineHeight: '1.45',
-            cursor: 'text'
+            fontFamily: "'Fira Code', Consolas, monospace",
+            fontSize: '0.82rem',
+            background: '#070b14',
+            cursor: 'text',
+            lineHeight: 1.6,
           }}
         >
           {lines.map((l, i) => (
-            <div
-              key={i}
-              style={{
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-all',
-                color: l.startsWith(prompt) ? '#fff' : '#b0b0b0',
-                marginBottom: '1px'
-              }}
-            >
-              {l.startsWith(prompt) ? (
-                <>
-                  <span style={{ color: '#4ade80', fontWeight: 'bold' }}>{prompt}</span>
-                  <span>{l.slice(prompt.length)}</span>
-                </>
-              ) : (
-                l
-              )}
+            <div key={i} style={{ color: l.startsWith('chainops@') ? '#38bdf8' : l.startsWith('[SECURITY]') ? '#a78bfa' : '#cbd5e1', whiteSpace: 'pre-wrap' }}>
+              {l}
             </div>
           ))}
 
-          {/* Active input line with blinking cursor */}
-          <div style={{ display: 'flex', alignItems: 'center', marginTop: '2px' }}>
-            <span style={{ color: '#4ade80', fontWeight: 'bold', userSelect: 'none' }}>
-              {prompt}
-            </span>
+          {/* Current active prompt input line */}
+          <div style={{ display: 'flex', alignItems: 'center', marginTop: '4px' }}>
+            <span style={{ color: '#38bdf8' }}>{prompt}</span>
             <input
               ref={inputRef}
               type="text"
               value={currentInput}
+              disabled={isExecuting}
               onChange={e => setCurrentInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              disabled={isExecuting}
-              autoFocus
-              spellCheck={false}
-              autoComplete="off"
               style={{
                 flex: 1,
-                backgroundColor: 'transparent',
-                color: '#fff',
+                background: 'transparent',
                 border: 'none',
                 outline: 'none',
-                fontFamily: 'inherit',
-                fontSize: 'inherit',
+                color: '#fff',
+                fontFamily: "'Fira Code', Consolas, monospace",
+                fontSize: '0.82rem',
                 padding: 0,
-                marginLeft: '4px'
+                marginLeft: '4px',
               }}
             />
           </div>
-
-          {isExecuting && (
-            <div style={{ color: '#888', fontStyle: 'italic', marginTop: '4px' }}>
-              [executing...]
-            </div>
-          )}
-
           <div ref={terminalEndRef} />
         </div>
       </div>

@@ -1,351 +1,241 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login } from '../api/auth.js';
+import { loginWithWallet } from '../api/auth.js';
 
-/* ─── Design tokens ─────────────────────────────────────────────────────── */
-const INPT_BLUE     = '#003366';
-const INPT_BLUE_LT  = '#004a99';
-const ERROR_RED     = '#c0392b';
-const BORDER_COLOR  = '#cbd5e0';
-const BG_PAGE       = '#f0f4f8';
-const BG_CARD       = '#ffffff';
-
-/* ─── Inline style objects ───────────────────────────────────────────────── */
-const styles = {
-  page: {
-    minHeight: '100vh',
-    background: BG_PAGE,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
-    padding: '1rem',
-  },
-  card: {
-    background: BG_CARD,
-    borderRadius: '12px',
-    boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
-    padding: '2.5rem 2.25rem',
-    width: '100%',
-    maxWidth: '420px',
-  },
-  logo: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: '1.75rem',
-    gap: '0.75rem',
-  },
-  logoIcon: {
-    width: '44px',
-    height: '44px',
-    borderRadius: '10px',
-    background: INPT_BLUE,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: '1.15rem',
-    letterSpacing: '-0.5px',
-    flexShrink: 0,
-  },
-  logoText: {
-    display: 'flex',
-    flexDirection: 'column',
-    lineHeight: 1.2,
-  },
-  logoTitle: {
-    color: INPT_BLUE,
-    fontWeight: '700',
-    fontSize: '1.1rem',
-  },
-  logoSubtitle: {
-    color: '#718096',
-    fontSize: '0.78rem',
-  },
-  heading: {
-    color: INPT_BLUE,
-    fontWeight: '700',
-    fontSize: '1.45rem',
-    textAlign: 'center',
-    marginBottom: '0.25rem',
-    marginTop: 0,
-  },
-  subheading: {
-    color: '#718096',
-    fontSize: '0.875rem',
-    textAlign: 'center',
-    marginBottom: '1.75rem',
-    marginTop: 0,
-  },
-  formGroup: {
-    marginBottom: '1rem',
-  },
-  label: {
-    display: 'block',
-    color: '#2d3748',
-    fontWeight: '600',
-    fontSize: '0.85rem',
-    marginBottom: '0.35rem',
-  },
-  input: {
-    width: '100%',
-    padding: '0.65rem 0.85rem',
-    border: `1.5px solid ${BORDER_COLOR}`,
-    borderRadius: '7px',
-    fontSize: '0.95rem',
-    color: '#1a202c',
-    background: '#f7fafc',
-    outline: 'none',
-    boxSizing: 'border-box',
-    transition: 'border-color 0.15s',
-  },
-  inputFocus: {
-    borderColor: INPT_BLUE,
-    background: '#fff',
-  },
-  inputError: {
-    borderColor: ERROR_RED,
-  },
-  fieldHint: {
-    fontSize: '0.75rem',
-    color: '#a0aec0',
-    marginTop: '0.25rem',
-  },
-  errorBox: {
-    background: '#fdecea',
-    border: `1px solid ${ERROR_RED}`,
-    color: ERROR_RED,
-    borderRadius: '7px',
-    padding: '0.65rem 0.9rem',
-    fontSize: '0.875rem',
-    marginBottom: '1rem',
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: '0.5rem',
-  },
-  submitBtn: {
-    width: '100%',
-    padding: '0.75rem',
-    background: INPT_BLUE,
-    color: '#fff',
-    border: 'none',
-    borderRadius: '7px',
-    fontWeight: '700',
-    fontSize: '1rem',
-    cursor: 'pointer',
-    marginTop: '0.5rem',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.6rem',
-    transition: 'background 0.15s',
-  },
-  submitBtnHover: {
-    background: INPT_BLUE_LT,
-  },
-  submitBtnDisabled: {
-    background: '#90a4c0',
-    cursor: 'not-allowed',
-  },
-  spinner: {
-    width: '18px',
-    height: '18px',
-    border: '2.5px solid rgba(255,255,255,0.4)',
-    borderTopColor: '#fff',
-    borderRadius: '50%',
-    animation: 'spin 0.7s linear infinite',
-    display: 'inline-block',
-    flexShrink: 0,
-  },
-  footer: {
-    textAlign: 'center',
-    color: '#a0aec0',
-    fontSize: '0.78rem',
-    marginTop: '2rem',
-  },
-};
-
-/* ─── Spin keyframe injected once ───────────────────────────────────────── */
-if (typeof document !== 'undefined' && !document.getElementById('login-spin-style')) {
-  const styleEl = document.createElement('style');
-  styleEl.id = 'login-spin-style';
-  styleEl.textContent = `@keyframes spin { to { transform: rotate(360deg); } }`;
-  document.head.appendChild(styleEl);
-}
-
-/* ─── Validation helpers ─────────────────────────────────────────────────── */
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function validateEmail(val) {
-  return EMAIL_RE.test(val);
-}
-
-function validatePassword(val) {
-  return val.length >= 8;
-}
-
-/* ─── Component ──────────────────────────────────────────────────────────── */
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [hasMetaMask, setHasMetaMask] = useState(false);
 
-  const [email,    setEmail]    = useState('');
-  const [password, setPassword] = useState('');
-  const [error,    setError]    = useState('');
-  const [loading,  setLoading]  = useState(false);
-
-  // Hover / focus state for styling
-  const [emailFocused,    setEmailFocused]    = useState(false);
-  const [passwordFocused, setPasswordFocused] = useState(false);
-  const [btnHovered,      setBtnHovered]      = useState(false);
-
-  // Client-side format hints (non-blocking — shown only as hints)
-  const emailInvalid    = email.length > 0    && !validateEmail(email);
-  const passwordShort   = password.length > 0 && !validatePassword(password);
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setError('');
-
-    // Basic client-side gate: prevent submission if obviously wrong format
-    if (!validateEmail(email) || !validatePassword(password)) {
-      // Soft UX: just show a neutral message, don't reveal which field failed
-      setError('Please enter a valid email and a password of at least 8 characters.');
-      return;
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.ethereum) {
+      setHasMetaMask(true);
     }
+  }, []);
 
+  async function handleConnect() {
     setLoading(true);
+    setError('');
     try {
-      await login(email, password);
-      navigate('/dashboard', { replace: true });
+      await loginWithWallet();
+      navigate('/dashboard');
     } catch (err) {
-      // Anti-enumeration: never disclose whether the email exists or not.
-      // Use a single generic message regardless of the server's actual error.
-      const serverMsg = err?.response?.data?.message;
-      if (serverMsg && typeof serverMsg === 'string' && serverMsg.length < 120) {
-        // Accept a generic server message only if it doesn't reveal specifics
-        const lower = serverMsg.toLowerCase();
-        const isSafe =
-          !lower.includes('email') &&
-          !lower.includes('not found') &&
-          !lower.includes('user') &&
-          !lower.includes('account') &&
-          !lower.includes('exist');
-        setError(isSafe ? serverMsg : 'Invalid credentials. Please try again.');
-      } else {
-        setError('Invalid credentials. Please try again.');
-      }
+      console.error(err);
+      setError(err?.message || 'Erreur lors de la connexion du portefeuille Web3.');
     } finally {
       setLoading(false);
     }
   }
 
-  const isDisabled = loading;
-
   return (
-    <div style={styles.page}>
-      <div style={styles.card}>
+    <div style={{
+      minHeight: '100vh',
+      background: 'radial-gradient(ellipse at 50% 20%, #111e38 0%, #070b14 70%)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '2rem 1rem',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      {/* Background ambient glow */}
+      <div style={{
+        position: 'absolute',
+        top: '15%',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: '600px',
+        height: '350px',
+        background: 'radial-gradient(circle, rgba(6, 182, 212, 0.12) 0%, rgba(139, 92, 246, 0.08) 50%, transparent 70%)',
+        filter: 'blur(60px)',
+        pointerEvents: 'none',
+      }} />
 
-        {/* Logo / Branding */}
-        <div style={styles.logo}>
-          <div style={styles.logoIcon}>CP</div>
-          <div style={styles.logoText}>
-            <span style={styles.logoTitle}>Cloud Platform</span>
-            <span style={styles.logoSubtitle}>Institut National des Postes et Télécommunications</span>
+      {/* Main Container */}
+      <div style={{
+        position: 'relative',
+        zIndex: 10,
+        width: '100%',
+        maxWidth: '520px',
+        background: 'rgba(15, 23, 42, 0.75)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255, 255, 255, 0.12)',
+        borderRadius: '20px',
+        boxShadow: '0 25px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(6, 182, 212, 0.1)',
+        padding: '2.5rem 2.25rem',
+      }}>
+        {/* Brand header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginBottom: '1.75rem' }}>
+          <div style={{
+            width: '50px',
+            height: '50px',
+            borderRadius: '14px',
+            background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #8b5cf6 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '1.6rem',
+            boxShadow: '0 8px 24px rgba(6, 182, 212, 0.4)',
+          }}>
+            ⛓️
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontWeight: '800', fontSize: '1.35rem', letterSpacing: '-0.5px', color: '#fff' }}>
+                ChainOps
+              </span>
+              <span style={{
+                background: 'rgba(6, 182, 212, 0.15)',
+                color: '#38bdf8',
+                border: '1px solid rgba(6, 182, 212, 0.3)',
+                padding: '0.15rem 0.5rem',
+                borderRadius: '6px',
+                fontSize: '0.7rem',
+                fontWeight: '700',
+                letterSpacing: '0.5px',
+              }}>
+                TESTNET
+              </span>
+            </div>
+            <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+              Decentralized Autonomous Cloud & immudb Ledger
+            </div>
           </div>
         </div>
 
-        <h1 style={styles.heading}>Sign in</h1>
-        <p style={styles.subheading}>Enter your INPT credentials to continue</p>
+        {/* Title */}
+        <h2 style={{ fontSize: '1.45rem', fontWeight: '800', margin: '0 0 0.5rem 0', color: '#f8fafc' }}>
+          Portail d'Accès Web3
+        </h2>
+        <p style={{ fontSize: '0.875rem', color: '#94a3b8', margin: '0 0 1.75rem 0', lineHeight: 1.55 }}>
+          L'infrastructure est traitée comme un registre financier. Aucune base de données centralisée d'utilisateurs ni mot de passe : votre <strong>Clé Privée</strong> signe et autorise chaque opération.
+        </p>
 
-        {/* Error alert */}
         {error && (
-          <div style={styles.errorBox} role="alert">
-            <span aria-hidden="true">⚠</span>
-            <span>{error}</span>
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.15)',
+            border: '1px solid rgba(239, 68, 68, 0.4)',
+            color: '#fca5a5',
+            padding: '0.85rem 1rem',
+            borderRadius: '10px',
+            fontSize: '0.85rem',
+            marginBottom: '1.5rem',
+          }}>
+            {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} noValidate>
-          {/* Email field */}
-          <div style={styles.formGroup}>
-            <label htmlFor="email" style={styles.label}>Email address</label>
-            <input
-              id="email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              onFocus={() => setEmailFocused(true)}
-              onBlur={() => setEmailFocused(false)}
-              placeholder="you@inpt.ac.ma"
-              disabled={loading}
-              required
-              aria-invalid={emailInvalid}
-              style={{
-                ...styles.input,
-                ...(emailFocused  ? styles.inputFocus : {}),
-                ...(emailInvalid  ? styles.inputError : {}),
-              }}
-            />
-            {emailInvalid && (
-              <p style={{ ...styles.fieldHint, color: ERROR_RED }}>
-                Please enter a valid email address.
-              </p>
-            )}
-          </div>
-
-          {/* Password field */}
-          <div style={styles.formGroup}>
-            <label htmlFor="password" style={styles.label}>Password</label>
-            <input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              onFocus={() => setPasswordFocused(true)}
-              onBlur={() => setPasswordFocused(false)}
-              placeholder="••••••••"
-              disabled={loading}
-              required
-              aria-invalid={passwordShort}
-              style={{
-                ...styles.input,
-                ...(passwordFocused ? styles.inputFocus : {}),
-                ...(passwordShort   ? styles.inputError : {}),
-              }}
-            />
-            {passwordShort && (
-              <p style={{ ...styles.fieldHint, color: ERROR_RED }}>
-                Password must be at least 8 characters.
-              </p>
-            )}
-          </div>
-
-          {/* Submit button */}
+        {/* Wallet Connect Action */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginBottom: '1.75rem' }}>
           <button
-            type="submit"
-            disabled={isDisabled}
-            onMouseEnter={() => setBtnHovered(true)}
-            onMouseLeave={() => setBtnHovered(false)}
+            onClick={handleConnect}
+            disabled={loading}
             style={{
-              ...styles.submitBtn,
-              ...(isDisabled  ? styles.submitBtnDisabled : {}),
-              ...(!isDisabled && btnHovered ? styles.submitBtnHover : {}),
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '1rem 1.25rem',
+              borderRadius: '12px',
+              border: '1px solid rgba(6, 182, 212, 0.3)',
+              background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(59, 130, 246, 0.2) 100%)',
+              color: '#fff',
+              fontSize: '1rem',
+              fontWeight: '700',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              boxShadow: '0 4px 20px rgba(6, 182, 212, 0.25)',
+              transition: 'all 0.2s ease',
             }}
           >
-            {loading && <span style={styles.spinner} aria-hidden="true" />}
-            {loading ? 'Signing in…' : 'Sign in'}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <span style={{ fontSize: '1.4rem' }}>🦊</span>
+              <span>{hasMetaMask ? 'Connecter MetaMask' : 'Connecter Portefeuille Web3'}</span>
+            </div>
+            <span style={{
+              background: hasMetaMask ? 'rgba(16, 185, 129, 0.2)' : 'rgba(59, 130, 246, 0.2)',
+              color: hasMetaMask ? '#34d399' : '#60a5fa',
+              padding: '0.2rem 0.5rem',
+              borderRadius: '6px',
+              fontSize: '0.72rem',
+              fontWeight: '600',
+            }}>
+              {hasMetaMask ? '● Détecté' : 'EIP-1193'}
+            </span>
           </button>
-        </form>
-      </div>
 
-      <p style={styles.footer}>
-        © {new Date().getFullYear()} INPT — Cloud Infrastructure Platform
-      </p>
+          <button
+            onClick={handleConnect}
+            disabled={loading}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0.85rem 1.25rem',
+              borderRadius: '12px',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              background: 'rgba(255, 255, 255, 0.04)',
+              color: '#cbd5e1',
+              fontSize: '0.9rem',
+              fontWeight: '600',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <span style={{ fontSize: '1.2rem' }}>🔑</span>
+              <span>Générer Clé de Développement Locale (secp256k1)</span>
+            </div>
+            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>1-Click</span>
+          </button>
+        </div>
+
+        {/* Live Cluster Topology Ribbon */}
+        <div style={{
+          background: 'rgba(0, 0, 0, 0.35)',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+          borderRadius: '10px',
+          padding: '0.85rem 1rem',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: '0.5rem',
+          fontSize: '0.75rem',
+          textAlign: 'center',
+          marginBottom: '1.5rem',
+        }}>
+          <div>
+            <div style={{ color: '#94a3b8' }}>Consensus</div>
+            <div style={{ fontWeight: '700', color: '#38bdf8' }}>Raft HA (3 Pis)</div>
+          </div>
+          <div>
+            <div style={{ color: '#94a3b8' }}>Registre</div>
+            <div style={{ fontWeight: '700', color: '#a78bfa' }}>immudb Merkle</div>
+          </div>
+          <div>
+            <div style={{ color: '#94a3b8' }}>Orchestrateur</div>
+            <div style={{ fontWeight: '700', color: '#34d399' }}>K3s client-go</div>
+          </div>
+        </div>
+
+        {/* 5-Step Architecture walkthrough */}
+        <div style={{
+          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+          paddingTop: '1.25rem',
+          fontSize: '0.78rem',
+          color: '#94a3b8',
+        }}>
+          <div style={{ fontWeight: '700', color: '#cbd5e1', marginBottom: '0.65rem' }}>
+            Processus d'Exécution Cryptographique en 5 Étapes :
+          </div>
+          <ol style={{ margin: 0, paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <li><strong>Client-Side Cryptography :</strong> Signature du JSON par clé privée.</li>
+            <li><strong>Smart Contract (Go) :</strong> <code>ecrecover</code> public key & quotas RAM.</li>
+            <li><strong>Consensus Raft :</strong> Quorum majoritaire approuvé entre Raspberry Pis.</li>
+            <li><strong>Registre immudb :</strong> Hachage SHA-256 scellé dans l'arbre de Merkle.</li>
+            <li><strong>Orchestration K3s :</strong> Génération YAML & Pod déployé sur le nœud physique.</li>
+          </ol>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,13 +1,6 @@
 import axios from 'axios';
+import { connectWallet, getOrCreateLocalWallet } from './crypto.js';
 
-/**
- * Axios instance pre-configured for the backend Auth API.
- *
- * - baseURL '/api' is handled by the Vite dev proxy (→ http://backend:8080)
- *   and by Nginx in production.
- * - withCredentials: true ensures session cookies are sent on every request,
- *   which is required for cookie-based session authentication.
- */
 const apiClient = axios.create({
   baseURL: '/api',
   withCredentials: true,
@@ -16,34 +9,72 @@ const apiClient = axios.create({
   },
 });
 
+// Attach current wallet address to headers for identification
+apiClient.interceptors.request.use(config => {
+  const currentAddress = localStorage.getItem('connected_wallet_address');
+  if (currentAddress) {
+    config.headers['X-Wallet-Address'] = currentAddress;
+  }
+  return config;
+});
+
 /**
- * Authenticate a user with email and password.
- *
- * @param {string} email    - The user's email address.
- * @param {string} password - The user's plain-text password.
- * @returns {Promise<import('axios').AxiosResponse>}
+ * Decentralized login using Web3 Cryptographic Wallet
  */
-export function login(email, password) {
-  return apiClient.post('/auth/login', { email, password });
+export async function loginWithWallet() {
+  const conn = await connectWallet();
+  localStorage.setItem('connected_wallet_address', conn.address);
+  localStorage.setItem('connected_wallet_type', conn.type);
+  return conn;
 }
 
 /**
- * Invalidate the current session on the server side.
- *
- * @returns {Promise<import('axios').AxiosResponse>}
+ * Check decentralized identity
  */
-export function logout() {
-  return apiClient.post('/auth/logout');
+export async function getMe() {
+  const address = localStorage.getItem('connected_wallet_address');
+  if (!address) {
+    return { data: { authenticated: false } };
+  }
+  const res = await apiClient.get('/auth/me', { params: { address } });
+  return res;
 }
 
 /**
- * Retrieve the currently authenticated user's profile.
- * Returns 401 if the session cookie is absent or expired.
- *
- * @returns {Promise<import('axios').AxiosResponse>}
+ * Disconnect Web3 wallet
  */
-export function getMe() {
-  return apiClient.get('/auth/me');
+export async function logout() {
+  localStorage.removeItem('connected_wallet_address');
+  localStorage.removeItem('connected_wallet_type');
+  return Promise.resolve();
+}
+
+/**
+ * Cluster stats (Hardware RAM/CPU + Raft Leader + Merkle Root)
+ */
+export function getClusterStats() {
+  return apiClient.get('/cluster/stats');
+}
+
+/**
+ * immudb immutable transactions ledger
+ */
+export function getLedgerTransactions() {
+  return apiClient.get('/ledger');
+}
+
+/**
+ * Cryptographic audit trail verification (Merkle tree & hash chain)
+ */
+export function verifyLedgerAudit() {
+  return apiClient.get('/ledger/audit');
+}
+
+/**
+ * Simulate rogue tampering on a database record
+ */
+export function simulateTamper(txId, newImage) {
+  return apiClient.post('/ledger/simulate-tamper', { txId, newImage });
 }
 
 export default apiClient;

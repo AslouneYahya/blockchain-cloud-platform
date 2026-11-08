@@ -1,15 +1,56 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛓️</text></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Cloud Platform — INPT Student Portal" />
-    <title>Cloud Platform — INPT</title>
+    <meta name="description" content="Blockchain Cloud Platform — Raspberry Pi K3s HA Cluster with immudb Immutable Ledger & Raft Consensus" />
+    <title>ChainOps Cloud — Decentralized K3s & immudb Ledger</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #070b14;
+        color: #f1f5f9;
+        font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      code, pre, .font-mono {
+        font-family: 'Fira Code', Consolas, monospace !important;
+      }
+      /* Custom scrollbars */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: rgba(15, 23, 42, 0.8);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(59, 130, 246, 0.3);
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(59, 130, 246, 0.6);
+      }
+      @keyframes pulseSlow {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.6; transform: scale(0.98); }
+      }
+      @keyframes glowCyan {
+        0%, 100% { box-shadow: 0 0 15px rgba(6, 182, 212, 0.2); }
+        50% { box-shadow: 0 0 25px rgba(6, 182, 212, 0.5); }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
-    <!-- Vite injects the bundled app here -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

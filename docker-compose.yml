@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   # ---------------------------------------------------------------------------
-  # Reverse proxy — terminates TLS and routes traffic to backend / frontend
+  # Reverse proxy — routes traffic to Go cluster daemon and React Web3 dashboard
   # ---------------------------------------------------------------------------
   nginx:
     image: nginx:alpine
@@ -18,60 +18,57 @@ services:
     restart: unless-stopped
 
   # ---------------------------------------------------------------------------
-  # Spring Boot API server
+  # Go Cluster Daemon — Smart Contract Gatekeeper, Raft consensus, K3s Orchestrator
   # ---------------------------------------------------------------------------
   backend:
-    build: ./backend
+    build: ./cluster-daemon
     expose:
       - "8080"
+    ports:
+      - "8081:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/authdb
-      SPRING_DATASOURCE_USERNAME: admin
-      SPRING_DATASOURCE_PASSWORD: secret
-      REDIS_HOST: redis
-      MASTER_NODE_URL: https://master.aslouneyahya.com
-      MASTER_NODE_ENABLED: "true"
-      MASTER_NODE_API_KEY: inpt-cluster-secret-2026
+      PORT: "8080"
+      DATA_DIR: "/data"
+      IMMUDB_HOST: "immudb"
+      IMMUDB_PORT: "3322"
+      CLUSTER_TOTAL_RAM_MB: "12288"
+      K3S_NAMESPACE: "default"
+      CLUSTER_DOMAIN: "cluster.local"
+    volumes:
+      - ledger_data:/data
     depends_on:
-      - db
-      - redis
+      - immudb
     restart: unless-stopped
 
   # ---------------------------------------------------------------------------
-  # Vite / React frontend (served directly in dev; built artifacts in prod)
+  # immudb — Cryptographic Immutable Ledger with Merkle Tree & Raft Consensus
+  # ---------------------------------------------------------------------------
+  immudb:
+    image: codenotary/immudb:latest
+    ports:
+      - "3322:3322"
+      - "9497:9497" # Web console / metrics
+    volumes:
+      - immudb_data:/var/lib/immudb
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Vite / React Web3 frontend with Client-Side Cryptography (MetaMask / Local Key)
   # ---------------------------------------------------------------------------
   frontend:
     build: ./frontend
     expose:
       - "5173"
+    ports:
+      - "5173:5173"
     volumes:
       - ./frontend:/app
       - /app/node_modules
     restart: unless-stopped
 
-  # ---------------------------------------------------------------------------
-  # PostgreSQL 16 — primary relational datastore
-  # ---------------------------------------------------------------------------
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: authdb
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: secret
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
-
-  # ---------------------------------------------------------------------------
-  # Redis 7 — session cache / token store
-  # ---------------------------------------------------------------------------
-  redis:
-    image: redis:7-alpine
-    command: redis-server --save 60 1 --loglevel warning
-    restart: unless-stopped
-
 # ---------------------------------------------------------------------------
-# Named volumes
+# Named volumes for immutable cryptographic ledger persistence
 # ---------------------------------------------------------------------------
 volumes:
-  postgres_data:
+  immudb_data:
+  ledger_data:
