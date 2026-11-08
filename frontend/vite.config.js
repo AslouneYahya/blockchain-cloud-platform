@@ -13,8 +13,9 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://backend:8080',
+        target: 'https://bc.aslouneyahya.com',
         changeOrigin: true,
+        secure: false,
       },
     },
   },
