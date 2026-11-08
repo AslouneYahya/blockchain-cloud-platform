@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   # ---------------------------------------------------------------------------
   # Reverse proxy — routes traffic to Go cluster daemon and React Web3 dashboard
