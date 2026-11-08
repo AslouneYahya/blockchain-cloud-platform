@@ -1,17 +1,33 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# setup_worker_node.sh — Zero-Config Worker Node Setup for Raspberry Pis
-# Connects outbound to Master via: https://k3s.aslouneyahya.com
-# NO cloudflared ingress (cloudflared is only for Master Control Plane)
+# setup_worker_node.sh — Resilient Worker Node Setup for Raspberry Pis
+# Usage:
+#   sudo bash setup_worker_node.sh [MASTER_IP_OR_HOST] [NODE_NAME]
+# Examples:
+#   sudo bash setup_worker_node.sh 192.168.1.50 pi-worker-2
+#   sudo bash setup_worker_node.sh pi-worker-2
 # ==============================================================================
 set -e
 
 CLUSTER_TOKEN="K10b1a611dcae299e54ae3b462c66a9bfc4fcc01e768abcf2b22ba2a4e19bac01bd::server:inpt-blockchain-cluster-secret-2026"
-MASTER_ENDPOINT="https://k3s.aslouneyahya.com"
+FALLBACK_SECRET="inpt-blockchain-cluster-secret-2026"
 
-# Determine unique node name so workers don't collide with master or each other
-# Default Raspberry Pi OS has hostname 'raspberrypi' on all Pis!
-TARGET_NODE_NAME="${1:-}"
+# Parse arguments:
+# If arg1 looks like an IP or hostname with port/dots, treat as master endpoint
+ARG1="${1:-}"
+ARG2="${2:-}"
+
+MASTER_IP=""
+TARGET_NODE_NAME=""
+
+if [[ "$ARG1" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+ ]] || [[ "$ARG1" =~ \.local$ ]]; then
+    MASTER_IP="$ARG1"
+    TARGET_NODE_NAME="$ARG2"
+else
+    TARGET_NODE_NAME="$ARG1"
+fi
+
+# Auto-detect node name if not passed
 if [ -z "$TARGET_NODE_NAME" ]; then
     if [ -n "$SUDO_USER" ] && [ "$SUDO_USER" != "pi" ] && [ "$SUDO_USER" != "root" ]; then
         TARGET_NODE_NAME="$SUDO_USER"
@@ -23,19 +39,37 @@ if [ -z "$TARGET_NODE_NAME" ]; then
     fi
 fi
 
+# Determine Master Endpoint:
+# 1. User provided IP
+# 2. Try mDNS resolution for Master Pi (pi-node-01.local or raspberrypi.local)
+# 3. Fallback to public domain
+if [ -n "$MASTER_IP" ]; then
+    if [[ "$MASTER_IP" =~ :[0-9]+$ ]]; then
+        MASTER_ENDPOINT="https://${MASTER_IP}"
+    else
+        MASTER_ENDPOINT="https://${MASTER_IP}:6443"
+    fi
+else
+    # Check if pi-master or raspberrypi is reachable via mDNS
+    if ping -c 1 -W 1 pi-node-01.local >/dev/null 2>&1; then
+        MASTER_ENDPOINT="https://pi-node-01.local:6443"
+    elif ping -c 1 -W 1 raspberrypi.local >/dev/null 2>&1; then
+        MASTER_ENDPOINT="https://raspberrypi.local:6443"
+    else
+        MASTER_ENDPOINT="https://k3s.aslouneyahya.com"
+    fi
+fi
+
 echo "======================================================================"
-echo "  [1/4] Stopping cloudflared & any stale K3s processes                "
+echo "  [1/4] Stopping cloudflared & clearing stale K3s agent               "
 echo "======================================================================"
 sudo systemctl stop cloudflared 2>/dev/null || true
 sudo systemctl disable cloudflared 2>/dev/null || true
 sudo rm -f /etc/systemd/system/cloudflared.service
 
-# Kill any stuck k3s processes that might be holding old tokens
 sudo pkill -9 -f "k3s" 2>/dev/null || true
 sleep 1
 
-# Completely wipe stale agent data to force clean re-registration
-echo "Cleaning stale K3s agent cache and tokens..."
 sudo /usr/local/bin/k3s-agent-uninstall.sh 2>/dev/null || true
 sudo /usr/local/bin/k3s-uninstall.sh 2>/dev/null || true
 sudo rm -rf /var/lib/rancher/k3s/agent
@@ -58,10 +92,13 @@ if [ -f "$CMDLINE_FILE" ]; then
 fi
 
 echo "======================================================================"
-echo "  [3/4] Joining K3s Cluster as Node: ${TARGET_NODE_NAME}              "
+echo "  [3/4] Connecting to Master: ${MASTER_ENDPOINT}                      "
+echo "  Node Name: ${TARGET_NODE_NAME}                                      "
 echo "======================================================================"
-echo "Master Endpoint: $MASTER_ENDPOINT"
-echo "Node Name:       $TARGET_NODE_NAME"
+
+# Test reachability
+echo "Testing connectivity to ${MASTER_ENDPOINT}/cacerts..."
+curl -k -m 5 -sf "${MASTER_ENDPOINT}/cacerts" > /dev/null && echo "✓ Master endpoint reachable!" || echo "⚠ Warning: Could not fetch cacerts directly, continuing join attempt..."
 
 curl -sfL https://get.k3s.io | K3S_URL="${MASTER_ENDPOINT}" K3S_TOKEN="${CLUSTER_TOKEN}" sh -s - agent \
     --node-name "${TARGET_NODE_NAME}"
@@ -80,7 +117,7 @@ echo ""
 echo "======================================================================"
 echo "  WORKER PI CONNECTED AND RUNNING!                                    "
 echo "  - Node Name:   ${TARGET_NODE_NAME}                                 "
-echo "  - cloudflared: DISABLED (Worker does not host public ingress)       "
-echo "  - K3s Master:  https://k3s.aslouneyahya.com                         "
+echo "  - Master URL:  ${MASTER_ENDPOINT}                                   "
 echo "======================================================================"
+
 
