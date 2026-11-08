@@ -139,8 +139,10 @@ sudo systemctl enable --now immudb.service
 echo "======================================================================"
 echo "  [6/6] Installing & Starting ChainOps Go Daemon (Port 8080)          "
 echo "======================================================================"
+sudo systemctl stop chainops-daemon.service 2>/dev/null || true
+
 if [ -f "$INSTALL_DIR/cluster-daemon/daemon-arm64" ]; then
-    sudo cp "$INSTALL_DIR/cluster-daemon/daemon-arm64" /opt/chainops/chainops-daemon
+    sudo cp -f "$INSTALL_DIR/cluster-daemon/daemon-arm64" /opt/chainops/chainops-daemon
     sudo chmod +x /opt/chainops/chainops-daemon
 fi
 
@@ -183,5 +185,5 @@ echo "  - immudb Ledger:   port 3322 (RUNNING)                              "
 echo "  - K3s Control:     port 6443 (serves https://k3s.aslouneyahya.com)  "
 echo "======================================================================"
 echo ""
-echo "Check K3s status anytime with: sudo kubectl get nodes"
-echo "Check immudb status anytime with: sudo systemctl status immudb"
+echo "Check K3s status:    sudo kubectl get nodes"
+echo "Check daemon health: curl http://localhost:8080/api/health"
