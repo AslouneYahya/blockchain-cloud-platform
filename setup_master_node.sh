@@ -90,6 +90,8 @@ echo "======================================================================"
 echo "  [3/5] Installing & Starting K3s Server with TLS SAN                 "
 echo "======================================================================"
 sudo mkdir -p /etc/rancher/k3s
+sudo rm -f /etc/rancher/k3s/config.yaml
+
 sudo bash -c 'cat <<EOF > /etc/rancher/k3s/config.yaml
 write-kubeconfig-mode: "644"
 disable:
@@ -100,7 +102,6 @@ tls-san:
   - "k3s.aslouneyahya.com"
   - "127.0.0.1"
   - "localhost"
-bind-address: "0.0.0.0"
 EOF'
 
 curl -sfL https://get.k3s.io | sh -s - \
@@ -112,7 +113,6 @@ curl -sfL https://get.k3s.io | sh -s - \
 
 echo "Ensuring K3s service is started..."
 sudo systemctl daemon-reload
-sudo systemctl enable --now k3s.service || true
 sudo systemctl restart k3s.service || true
 
 echo "======================================================================"
