@@ -6,7 +6,7 @@
 # ==============================================================================
 set -e
 
-CLUSTER_TOKEN="inpt-blockchain-cluster-secret-2026"
+CLUSTER_TOKEN="K10b1a611dcae299e54ae3b462c66a9bfc4fcc01e768abcf2b22ba2a4e19bac01bd::server:inpt-blockchain-cluster-secret-2026"
 MASTER_ENDPOINT="https://k3s.aslouneyahya.com"
 
 echo "======================================================================"
@@ -34,6 +34,12 @@ echo "======================================================================"
 echo "  [3/3] Joining K3s Cluster via $MASTER_ENDPOINT                      "
 echo "======================================================================"
 NODE_HOSTNAME=$(hostname)
+
+# Update existing environment file if present
+if [ -f /etc/systemd/system/k3s-agent.service.env ]; then
+    sudo sed -i 's|K3S_TOKEN=.*|K3S_TOKEN="'"${CLUSTER_TOKEN}"'"|' /etc/systemd/system/k3s-agent.service.env
+fi
+
 curl -sfL https://get.k3s.io | K3S_URL="${MASTER_ENDPOINT}" K3S_TOKEN="${CLUSTER_TOKEN}" sh -s - \
     --node-name "${NODE_HOSTNAME}"
 
