@@ -89,12 +89,11 @@ if [ -f "$CMDLINE_FILE" ]; then
     fi
 fi
 
-# Do NOT fail if Debian mirrors have outdated 404 security package versions:
 sudo apt-get update -y || true
 sudo apt-get install -y curl ca-certificates iptables --fix-missing || true
 
 echo "======================================================================"
-echo "  [4/6] Installing K3s Server with Hardcoded Token                    "
+echo "  [4/6] Installing & Starting K3s Server                              "
 echo "======================================================================"
 curl -sfL https://get.k3s.io | sh -s - \
     --write-kubeconfig-mode 644 \
@@ -102,19 +101,20 @@ curl -sfL https://get.k3s.io | sh -s - \
     --token "$CLUSTER_TOKEN" \
     --node-name "pi-node-01"
 
+echo "Ensuring K3s service is started..."
+sudo systemctl daemon-reload
+sudo systemctl enable --now k3s.service || true
+
 echo "======================================================================"
 echo "  [5/6] Installing & Starting immudb Ledger Server (Port 3322)        "
 echo "======================================================================"
-IMMUDB_VERSION="v1.9.2"
+IMMUDB_VERSION="v1.11.2"
 sudo mkdir -p /var/lib/immudb /opt/chainops/data
 
 if ! command -v immudb >/dev/null 2>&1; then
-    echo "Downloading immudb ARM64..."
-    curl -fsSL -o /tmp/immudb "https://github.com/codenotary/immudb/releases/download/${IMMUDB_VERSION}/immudb-${IMMUDB_VERSION}-linux-arm64" || true
-    if [ -f /tmp/immudb ]; then
-        sudo mv /tmp/immudb /usr/local/bin/immudb
-        sudo chmod +x /usr/local/bin/immudb
-    fi
+    echo "Downloading immudb ARM64 release $IMMUDB_VERSION..."
+    sudo curl -# -L -o /usr/local/bin/immudb "https://github.com/codenotary/immudb/releases/download/${IMMUDB_VERSION}/immudb-${IMMUDB_VERSION}-linux-arm64"
+    sudo chmod +x /usr/local/bin/immudb
 fi
 
 sudo bash -c 'cat <<EOF > /etc/systemd/system/immudb.service
@@ -179,6 +179,9 @@ echo "======================================================================"
 echo "  MASTER NODE READY! (Pre-shared Token Active)                        "
 echo "  - Cloudflare WARP & Tunnel: ACTIVE                                  "
 echo "  - Blockchain API:  port 8080 (serves https://bc.aslouneyahya.com)   "
-echo "  - immudb Ledger:   port 3322                                        "
+echo "  - immudb Ledger:   port 3322 (RUNNING)                              "
 echo "  - K3s Control:     port 6443 (serves https://k3s.aslouneyahya.com)  "
 echo "======================================================================"
+echo ""
+echo "Check K3s status anytime with: sudo kubectl get nodes"
+echo "Check immudb status anytime with: sudo systemctl status immudb"
