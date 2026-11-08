@@ -100,7 +100,8 @@ echo "  [4/4] Joining K3s Cluster via TCP Bridge (Node: ${TARGET_NODE_NAME}) "
 echo "======================================================================"
 
 curl -sfL https://get.k3s.io | K3S_URL="https://127.0.0.1:6443" K3S_TOKEN="${CLUSTER_TOKEN}" sh -s - agent \
-    --node-name "${TARGET_NODE_NAME}"
+    --node-name "${TARGET_NODE_NAME}" \
+    --with-node-id
 
 sudo systemctl daemon-reload
 sudo systemctl enable --now k3s-agent.service || true
