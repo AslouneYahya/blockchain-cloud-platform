@@ -91,6 +91,14 @@ NODE_HOSTNAME=$(hostname)
 curl -sfL https://get.k3s.io | K3S_URL="${MASTER_ENDPOINT}" K3S_TOKEN="${CLUSTER_TOKEN}" sh -s - \
     --node-name "${NODE_HOSTNAME}"
 
+sudo systemctl daemon-reload
+sudo systemctl enable --now k3s-agent.service || true
+sudo systemctl restart k3s-agent.service || true
+
+if ! systemctl is-active --quiet k3s-agent.service; then
+    echo "NOTICE: Kernel cgroups requires a one-time reboot. Please run: sudo reboot"
+fi
+
 echo ""
 echo "======================================================================"
 echo "  WORKER PI CONNECTED AND RUNNING!                                    "

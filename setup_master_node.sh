@@ -87,17 +87,33 @@ if [ -f "$CMDLINE_FILE" ]; then
 fi
 
 echo "======================================================================"
-echo "  [3/5] Installing & Starting K3s Server (Port 6443)                  "
+echo "  [3/5] Installing & Starting K3s Server with TLS SAN                 "
 echo "======================================================================"
+sudo mkdir -p /etc/rancher/k3s
+sudo bash -c 'cat <<EOF > /etc/rancher/k3s/config.yaml
+write-kubeconfig-mode: "644"
+disable:
+  - traefik
+token: "inpt-blockchain-cluster-secret-2026"
+node-name: "pi-node-01"
+tls-san:
+  - "k3s.aslouneyahya.com"
+  - "127.0.0.1"
+  - "localhost"
+bind-address: "0.0.0.0"
+EOF'
+
 curl -sfL https://get.k3s.io | sh -s - \
     --write-kubeconfig-mode 644 \
     --disable traefik \
     --token "$CLUSTER_TOKEN" \
-    --node-name "pi-node-01"
+    --node-name "pi-node-01" \
+    --tls-san "k3s.aslouneyahya.com"
 
 echo "Ensuring K3s service is started..."
 sudo systemctl daemon-reload
 sudo systemctl enable --now k3s.service || true
+sudo systemctl restart k3s.service || true
 
 echo "======================================================================"
 echo "  [4/5] Installing & Starting immudb Ledger Server (Port 3322)        "
@@ -168,7 +184,16 @@ EOF'
 sudo systemctl daemon-reload
 if [ -f /opt/chainops/chainops-daemon ]; then
     sudo systemctl enable --now chainops-daemon.service
+    sudo systemctl restart chainops-daemon.service || true
 fi
+
+echo "Restarting Cloudflare tunnel to reload connections..."
+sudo systemctl restart cloudflared.service || true
+
+echo "Checking local services..."
+sleep 2
+curl -k -sI https://127.0.0.1:6443/ping && echo "✓ K3s port 6443: OK" || echo "⚠ K3s starting..."
+curl -sI http://127.0.0.1:8080/api/health && echo "✓ Daemon port 8080: OK" || echo "⚠ Daemon starting..."
 
 echo ""
 echo "======================================================================"
