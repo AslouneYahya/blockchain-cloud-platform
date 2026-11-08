@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # setup_worker_node.sh — Zero-Config Worker Node Setup for Raspberry Pis
+# Connects outbound to Master via: https://k3s.aslouneyahya.com
+# NO cloudflared ingress (cloudflared is only for Master Control Plane)
 # ==============================================================================
 set -e
 
@@ -8,11 +10,12 @@ CLUSTER_TOKEN="inpt-blockchain-cluster-secret-2026"
 MASTER_ENDPOINT="https://k3s.aslouneyahya.com"
 
 echo "======================================================================"
-echo "  [1/3] Ensuring cloudflared ingress is disabled on Worker            "
+echo "  [1/3] Removing any cloudflared ingress conflict on Worker           "
 echo "======================================================================"
-# Workers must NEVER run the Master's ingress tunnel token!
 sudo systemctl stop cloudflared 2>/dev/null || true
 sudo systemctl disable cloudflared 2>/dev/null || true
+sudo rm -f /etc/systemd/system/cloudflared.service
+sudo systemctl daemon-reload
 
 echo "======================================================================"
 echo "  [2/3] Configuring Linux Kernel cgroups on Worker Pi                 "
@@ -41,6 +44,6 @@ sudo systemctl restart k3s-agent.service || true
 echo ""
 echo "======================================================================"
 echo "  WORKER PI CONNECTED AND RUNNING!                                    "
-echo "  - Ingress Conflict: RESOLVED (cloudflared removed from worker)      "
-echo "  - K3s Node:         JOINED TO https://k3s.aslouneyahya.com          "
+echo "  - cloudflared: DISABLED (Worker does not host public ingress)       "
+echo "  - K3s Node:    JOINED TO https://k3s.aslouneyahya.com               "
 echo "======================================================================"
