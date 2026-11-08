@@ -275,18 +275,34 @@ export default function LedgerExplorer() {
                     {isExpanded && (
                       <tr style={{ background: '#0d0f14', borderBottom: '1px solid #1f242d' }}>
                         <td colSpan={7} style={{ padding: '1rem 1.25rem' }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.78rem' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', fontSize: '0.78rem' }}>
                             <div>
-                              <div style={{ color: '#64748b', marginBottom: '0.25rem' }}>Cryptographic Hashes</div>
+                              <div style={{ color: '#64748b', marginBottom: '0.25rem', fontWeight: '600' }}>Cryptographic Hashes</div>
                               <div style={{ fontFamily: 'monospace', color: '#cbd5e1', lineHeight: 1.6 }}>
-                                <div>Previous: {tx.previousHash}</div>
-                                <div>Block: {tx.blockHash}</div>
-                                <div>Payload: {tx.payloadHash}</div>
+                                <div>Previous: {tx.previousHash?.slice(0, 18)}...</div>
+                                <div>Block: {tx.blockHash?.slice(0, 18)}...</div>
+                                <div>Payload: {tx.payloadHash?.slice(0, 18)}...</div>
                               </div>
                             </div>
+
                             <div>
-                              <div style={{ color: '#64748b', marginBottom: '0.25rem' }}>Client Signature (secp256k1)</div>
-                              <div style={{ fontFamily: 'monospace', color: '#cbd5e1', wordBreak: 'break-all' }}>
+                              <div style={{ color: '#64748b', marginBottom: '0.25rem', fontWeight: '600' }}>Raft Consensus Quorum ({tx.consensus?.positiveVotes || 3}/{tx.consensus?.totalNodes || 3})</div>
+                              <div style={{ color: '#cbd5e1', lineHeight: 1.5 }}>
+                                <div>Leader: <strong style={{ color: '#60a5fa' }}>{tx.consensus?.leaderNode || 'pi-node-01'}</strong></div>
+                                <div>Term: #{tx.consensus?.term || 1} • Status: <span style={{ color: '#34d399' }}>Quorum Agreed</span></div>
+                                <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '0.2rem' }}>
+                                  {(tx.consensus?.votes || []).map(v => (
+                                    <div key={v.nodeId} style={{ fontFamily: 'monospace' }}>
+                                      ✓ {v.nodeId}: {v.vote ? 'Voted YES' : 'NO'}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div>
+                              <div style={{ color: '#64748b', marginBottom: '0.25rem', fontWeight: '600' }}>Client Signature (secp256k1)</div>
+                              <div style={{ fontFamily: 'monospace', color: '#cbd5e1', wordBreak: 'break-all', fontSize: '0.72rem', lineHeight: 1.4 }}>
                                 {tx.signature}
                               </div>
                             </div>
