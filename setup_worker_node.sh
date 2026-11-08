@@ -1,26 +1,16 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# setup_worker_node.sh — Complete Worker Node Setup for Raspberry Pis
-# 1. Installs Cloudflare WARP client (warp-svc & warp-cli) and connects
-# 2. Installs cloudflared daemon using the SAME tunnel token
-# 3. Configures Linux cgroups for containers
-# 4. Connects worker to K3s cluster via https://k3s.aslouneyahya.com
+# setup_worker_node.sh — Zero-Config Worker Node Setup for Raspberry Pis
+# ALL TOKENS ARE HARDCODED:
+# - Cloudflare Tunnel Token
+# - K3s Cluster Secret Token
+# - Target Master: https://k3s.aslouneyahya.com
 # ==============================================================================
 set -e
 
-K3S_TOKEN="${1:-}"
-CLOUDFLARE_TOKEN="${2:-eyJhIjoiODcwZWRiNzc5M2IyYTc2OGMyZmE2ZGRjYTBlOGYzYmEiLCJ0IjoiNGU2Mzc4NzQtMTRlYi00ZjViLThkMjItNDUyNzMyMTRiZDYyIiwicyI6Ik9EUTBNVGcyTldZdFpXRmlNUzAwTURSbExXRmhOemd0T0RVd01ESXdOalJoTVRaaiJ9}"
-
-if [ -z "$K3S_TOKEN" ]; then
-    echo "======================================================================"
-    echo "Error: K3s Node Token is required!"
-    echo "Usage: sudo ./setup_worker_node.sh <K3S_NODE_TOKEN>"
-    echo ""
-    echo "Example:"
-    echo "  sudo ./setup_worker_node.sh K10fa6c...::server:..."
-    echo "======================================================================"
-    exit 1
-fi
+CLUSTER_TOKEN="inpt-blockchain-cluster-secret-2026"
+CLOUDFLARE_TOKEN="eyJhIjoiODcwZWRiNzc5M2IyYTc2OGMyZmE2ZGRjYTBlOGYzYmEiLCJ0IjoiNGU2Mzc4NzQtMTRlYi00ZjViLThkMjItNDUyNzMyMTRiZDYyIiwicyI6Ik9EUTBNVGcyTldZdFpXRmlNUzAwTURSbExXRmhOemd0T0RVd01ESXdOalJoTVRaaiJ9"
+MASTER_ENDPOINT="https://k3s.aslouneyahya.com"
 
 echo "======================================================================"
 echo "  [1/4] Installing & Activating Cloudflare WARP                       "
@@ -53,7 +43,7 @@ if [ -f /tmp/cloudflare-warp.deb ]; then
 fi
 
 echo "======================================================================"
-echo "  [2/4] Installing cloudflared & Connecting with Tunnel Token         "
+echo "  [2/4] Installing cloudflared & Connecting to Cluster Tunnel         "
 echo "======================================================================"
 if [ ! -f /usr/local/bin/cloudflared ]; then
     echo "Downloading cloudflared ARM64..."
@@ -98,16 +88,16 @@ sudo apt-get update -y
 sudo apt-get install -y curl ca-certificates iptables
 
 echo "======================================================================"
-echo "  [4/4] Joining K3s Cluster via Cloudflare (https://k3s.aslouneyahya.com) "
+echo "  [4/4] Joining K3s Cluster via $MASTER_ENDPOINT                      "
 echo "======================================================================"
 NODE_HOSTNAME=$(hostname)
-curl -sfL https://get.k3s.io | K3S_URL="https://k3s.aslouneyahya.com" K3S_TOKEN="${K3S_TOKEN}" sh -s - \
+curl -sfL https://get.k3s.io | K3S_URL="${MASTER_ENDPOINT}" K3S_TOKEN="${CLUSTER_TOKEN}" sh -s - \
     --node-name "${NODE_HOSTNAME}"
 
 echo ""
 echo "======================================================================"
 echo "  WORKER PI CONNECTED AND RUNNING!                                    "
 echo "  - Cloudflare WARP: ACTIVE                                           "
-echo "  - cloudflared:     CONNECTED WITH TUNNEL TOKEN                      "
+echo "  - cloudflared:     CONNECTED                                        "
 echo "  - K3s Node:        JOINED TO https://k3s.aslouneyahya.com           "
 echo "======================================================================"

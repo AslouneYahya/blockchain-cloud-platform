@@ -1,17 +1,13 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# setup_master_node.sh — Complete Standalone Master Node Setup (Raspberry Pi)
-# 1. Installs & activates Cloudflare WARP (warp-svc & warp-cli)
-# 2. Installs & starts cloudflared using tunnel token (if not already running)
-# 3. Configures Linux cgroups for K3s
-# 4. Installs K3s Control Plane Server (Port 6443) -> for k3s.aslouneyahya.com
-# 5. Installs & starts immudb Immutable Ledger Server (Port 3322)
-# 6. Installs & starts ChainOps Go Blockchain Daemon (Port 8080) -> for bc.aslouneyahya.com
+# setup_master_node.sh — Standalone Master Node Setup (Raspberry Pi)
+# Uses Fixed Pre-shared Cluster Token: "inpt-blockchain-cluster-secret-2026"
 # ==============================================================================
 set -e
 
 INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CLOUDFLARE_TOKEN="${1:-eyJhIjoiODcwZWRiNzc5M2IyYTc2OGMyZmE2ZGRjYTBlOGYzYmEiLCJ0IjoiNGU2Mzc4NzQtMTRlYi00ZjViLThkMjItNDUyNzMyMTRiZDYyIiwicyI6Ik9EUTBNVGcyTldZdFpXRmlNUzAwTURSbExXRmhOemd0T0RVd01ESXdOalJoTVRaaiJ9}"
+CLUSTER_TOKEN="inpt-blockchain-cluster-secret-2026"
+CLOUDFLARE_TOKEN="eyJhIjoiODcwZWRiNzc5M2IyYTc2OGMyZmE2ZGRjYTBlOGYzYmEiLCJ0IjoiNGU2Mzc4NzQtMTRlYi00ZjViLThkMjItNDUyNzMyMTRiZDYyIiwicyI6Ik9EUTBNVGcyTldZdFpXRmlNUzAwTURSbExXRmhOemd0T0RVd01ESXdOalJoTVRaaiJ9"
 
 echo "======================================================================"
 echo "  [1/6] Installing & Activating Cloudflare WARP                       "
@@ -92,11 +88,12 @@ sudo apt-get update -y
 sudo apt-get install -y curl ca-certificates iptables
 
 echo "======================================================================"
-echo "  [4/6] Installing K3s Control Plane Server (Port 6443)               "
+echo "  [4/6] Installing K3s Server with Hardcoded Token                    "
 echo "======================================================================"
 curl -sfL https://get.k3s.io | sh -s - \
     --write-kubeconfig-mode 644 \
     --disable traefik \
+    --token "$CLUSTER_TOKEN" \
     --node-name "pi-node-01"
 
 echo "======================================================================"
@@ -173,14 +170,9 @@ fi
 
 echo ""
 echo "======================================================================"
-echo "  MASTER NODE READY!                                                  "
+echo "  MASTER NODE READY! (Pre-shared Token Active)                        "
 echo "  - Cloudflare WARP & Tunnel: ACTIVE                                  "
 echo "  - Blockchain API:  port 8080 (serves https://bc.aslouneyahya.com)   "
 echo "  - immudb Ledger:   port 3322                                        "
 echo "  - K3s Control:     port 6443 (serves https://k3s.aslouneyahya.com)  "
 echo "======================================================================"
-echo ""
-echo ">> YOUR K3S NODE TOKEN (Copy this for worker nodes):"
-echo "----------------------------------------------------------------------"
-sudo cat /var/lib/rancher/k3s/server/node-token
-echo "----------------------------------------------------------------------"
