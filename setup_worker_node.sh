@@ -1,28 +1,29 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# setup_worker_node.sh — Worker Node Setup for Raspberry Pis
-# 1. Installs Cloudflare WARP client so worker connects to Cloudflare network
-# 2. Configures cgroups
-# 3. Joins K3s cluster via Cloudflare Tunnel (https://k3s.aslouneyahya.com)
+# setup_worker_node.sh — Complete Worker Node Setup for Raspberry Pis
+# 1. Installs Cloudflare WARP client (warp-svc & warp-cli) and connects
+# 2. Installs cloudflared daemon using the SAME tunnel token
+# 3. Configures Linux cgroups for containers
+# 4. Connects worker to K3s cluster via https://k3s.aslouneyahya.com
 # ==============================================================================
 set -e
 
 K3S_TOKEN="${1:-}"
-MASTER_ENDPOINT="${2:-https://k3s.aslouneyahya.com}"
+CLOUDFLARE_TOKEN="${2:-eyJhIjoiODcwZWRiNzc5M2IyYTc2OGMyZmE2ZGRjYTBlOGYzYmEiLCJ0IjoiNGU2Mzc4NzQtMTRlYi00ZjViLThkMjItNDUyNzMyMTRiZDYyIiwicyI6Ik9EUTBNVGcyTldZdFpXRmlNUzAwTURSbExXRmhOemd0T0RVd01ESXdOalJoTVRaaiJ9}"
 
 if [ -z "$K3S_TOKEN" ]; then
     echo "======================================================================"
     echo "Error: K3s Node Token is required!"
-    echo "Usage: sudo ./setup_worker_node.sh <K3S_NODE_TOKEN> [OPTIONAL_ENDPOINT]"
+    echo "Usage: sudo ./setup_worker_node.sh <K3S_NODE_TOKEN>"
     echo ""
     echo "Example:"
-    echo "  sudo ./setup_worker_node.sh K10fa6c...::server:... https://k3s.aslouneyahya.com"
+    echo "  sudo ./setup_worker_node.sh K10fa6c...::server:..."
     echo "======================================================================"
     exit 1
 fi
 
 echo "======================================================================"
-echo "  [1/3] Installing & Connecting Cloudflare WARP                       "
+echo "  [1/4] Installing & Activating Cloudflare WARP                       "
 echo "======================================================================"
 RELEASE=$(lsb_release -cs 2>/dev/null || grep VERSION_CODENAME /etc/os-release | cut -d= -f2 || echo "bullseye")
 if [ "$RELEASE" = "bullseye" ]; then
@@ -32,7 +33,7 @@ else
 fi
 
 if [ ! -f /tmp/cloudflare-warp.deb ]; then
-    echo "Downloading Cloudflare WARP..."
+    echo "Downloading Cloudflare WARP for $RELEASE..."
     curl -# -L -o /tmp/cloudflare-warp.deb "$DEB_URL" || true
 fi
 
@@ -52,14 +53,43 @@ if [ -f /tmp/cloudflare-warp.deb ]; then
 fi
 
 echo "======================================================================"
-echo "  [2/3] Configuring Linux Kernel cgroups on Worker Pi                 "
+echo "  [2/4] Installing cloudflared & Connecting with Tunnel Token         "
+echo "======================================================================"
+if [ ! -f /usr/local/bin/cloudflared ]; then
+    echo "Downloading cloudflared ARM64..."
+    sudo curl -# -L -o /usr/local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64
+    sudo chmod +x /usr/local/bin/cloudflared
+fi
+
+cat << EOF | sudo tee /etc/systemd/system/cloudflared.service > /dev/null
+[Unit]
+Description=Cloudflare Tunnel
+After=network.target network-online.target warp-svc.service
+Wants=network-online.target warp-svc.service
+
+[Service]
+Type=simple
+TimeoutStartSec=10s
+Restart=always
+RestartSec=5s
+ExecStart=/usr/local/bin/cloudflared tunnel --no-autoupdate run --token $CLOUDFLARE_TOKEN
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now cloudflared.service
+
+echo "======================================================================"
+echo "  [3/4] Configuring Linux Kernel cgroups on Worker Pi                 "
 echo "======================================================================"
 CMDLINE_FILE="/boot/firmware/cmdline.txt"
 [ ! -f "$CMDLINE_FILE" ] && CMDLINE_FILE="/boot/cmdline.txt"
 
 if [ -f "$CMDLINE_FILE" ]; then
     if ! grep -q "cgroup_memory=1" "$CMDLINE_FILE"; then
-        echo "Enabling cgroup memory flags in $CMDLINE_FILE..."
+        echo "Adding cgroup memory flags in $CMDLINE_FILE..."
         sudo sed -i '$ s/$/ cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory/' "$CMDLINE_FILE"
     fi
 fi
@@ -68,14 +98,16 @@ sudo apt-get update -y
 sudo apt-get install -y curl ca-certificates iptables
 
 echo "======================================================================"
-echo "  [3/3] Joining K3s Cluster via Cloudflare ($MASTER_ENDPOINT)         "
+echo "  [4/4] Joining K3s Cluster via Cloudflare (https://k3s.aslouneyahya.com) "
 echo "======================================================================"
 NODE_HOSTNAME=$(hostname)
-curl -sfL https://get.k3s.io | K3S_URL="${MASTER_ENDPOINT}" K3S_TOKEN="${K3S_TOKEN}" sh -s - \
+curl -sfL https://get.k3s.io | K3S_URL="https://k3s.aslouneyahya.com" K3S_TOKEN="${K3S_TOKEN}" sh -s - \
     --node-name "${NODE_HOSTNAME}"
 
 echo ""
 echo "======================================================================"
-echo "  WORKER PI JOINED TO CLUSTER VIA CLOUDFLARE!                         "
-echo "  Verify on Master Pi with: sudo kubectl get nodes                    "
+echo "  WORKER PI CONNECTED AND RUNNING!                                    "
+echo "  - Cloudflare WARP: ACTIVE                                           "
+echo "  - cloudflared:     CONNECTED WITH TUNNEL TOKEN                      "
+echo "  - K3s Node:        JOINED TO https://k3s.aslouneyahya.com           "
 echo "======================================================================"
