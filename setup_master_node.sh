@@ -15,7 +15,7 @@ CLUSTER_TOKEN="inpt-blockchain-cluster-secret-2026"
 CLOUDFLARE_TOKEN="eyJhIjoiODcwZWRiNzc5M2IyYTc2OGMyZmE2ZGRjYTBlOGYzYmEiLCJ0IjoiNGU2Mzc4NzQtMTRlYi00ZjViLThkMjItNDUyNzMyMTRiZDYyIiwicyI6Ik9EUTBNVGcyTldZdFpXRmlNUzAwTURSbExXRmhOemd0T0RVd01ESXdOalJoTVRaaiJ9"
 
 echo "======================================================================"
-echo "  [1/6] Installing & Activating Cloudflare WARP                       "
+echo "  [1/5] Ensuring Cloudflare WARP and Tunnel are Active                "
 echo "======================================================================"
 RELEASE=$(lsb_release -cs 2>/dev/null || grep VERSION_CODENAME /etc/os-release | cut -d= -f2 || echo "bullseye")
 if [ "$RELEASE" = "bullseye" ]; then
@@ -44,9 +44,6 @@ if [ -f /tmp/cloudflare-warp.deb ]; then
     warp-cli --accept-tos connect 2>/dev/null || true
 fi
 
-echo "======================================================================"
-echo "  [2/6] Ensuring cloudflared Tunnel Daemon is Active                  "
-echo "======================================================================"
 if [ ! -f /usr/local/bin/cloudflared ]; then
     echo "Downloading cloudflared ARM64..."
     sudo curl -# -L -o /usr/local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64
@@ -73,11 +70,11 @@ EOF
     sudo systemctl daemon-reload
     sudo systemctl enable --now cloudflared.service
 else
-    echo "✓ cloudflared.service is already active and healthy!"
+    echo "✓ cloudflared.service is active and healthy!"
 fi
 
 echo "======================================================================"
-echo "  [3/6] Configuring Linux Kernel cgroups for K3s                      "
+echo "  [2/5] Configuring Linux Kernel cgroups                              "
 echo "======================================================================"
 CMDLINE_FILE="/boot/firmware/cmdline.txt"
 [ ! -f "$CMDLINE_FILE" ] && CMDLINE_FILE="/boot/cmdline.txt"
@@ -89,11 +86,8 @@ if [ -f "$CMDLINE_FILE" ]; then
     fi
 fi
 
-sudo apt-get update -y || true
-sudo apt-get install -y curl ca-certificates iptables --fix-missing || true
-
 echo "======================================================================"
-echo "  [4/6] Installing & Starting K3s Server                              "
+echo "  [3/5] Installing & Starting K3s Server (Port 6443)                  "
 echo "======================================================================"
 curl -sfL https://get.k3s.io | sh -s - \
     --write-kubeconfig-mode 644 \
@@ -106,12 +100,12 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now k3s.service || true
 
 echo "======================================================================"
-echo "  [5/6] Installing & Starting immudb Ledger Server (Port 3322)        "
+echo "  [4/5] Installing & Starting immudb Ledger Server (Port 3322)        "
 echo "======================================================================"
 IMMUDB_VERSION="v1.11.2"
 sudo mkdir -p /var/lib/immudb /opt/chainops/data
 
-if ! command -v immudb >/dev/null 2>&1; then
+if [ ! -f /usr/local/bin/immudb ]; then
     echo "Downloading immudb ARM64 release $IMMUDB_VERSION..."
     sudo curl -# -L -o /usr/local/bin/immudb "https://github.com/codenotary/immudb/releases/download/${IMMUDB_VERSION}/immudb-${IMMUDB_VERSION}-linux-arm64"
     sudo chmod +x /usr/local/bin/immudb
@@ -137,7 +131,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now immudb.service
 
 echo "======================================================================"
-echo "  [6/6] Installing & Starting ChainOps Go Daemon (Port 8080)          "
+echo "  [5/5] Installing & Starting ChainOps Go Daemon (Port 8080)          "
 echo "======================================================================"
 sudo systemctl stop chainops-daemon.service 2>/dev/null || true
 
