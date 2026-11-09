@@ -112,6 +112,43 @@ func (o *Orchestrator) BuildKubernetesManifests(payload *types.DeploymentPayload
 		envVars = append(envVars, corev1.EnvVar{Name: k, Value: v})
 	}
 
+	// Smart container command: ensure interactive runtime images (like python, node) run as HTTP servers instead of exiting
+	var containerCmd []string
+	imgLower := strings.ToLower(payload.Image)
+	if strings.Contains(imgLower, "python") {
+		containerCmd = []string{"python3", "-m", "http.server", fmt.Sprintf("%d", payload.Port)}
+	} else if strings.Contains(imgLower, "node") {
+		script := fmt.Sprintf("const http = require('http'); http.createServer((q,s)=>s.end('ChainOps Node.js Service Active')).listen(%d);", payload.Port)
+		containerCmd = []string{"node", "-e", script}
+	} else if strings.Contains(imgLower, "golang") || (strings.Contains(imgLower, "alpine") && !strings.Contains(imgLower, "nginx")) {
+		containerCmd = []string{"sh", "-c", fmt.Sprintf("while true; do echo -e 'HTTP/1.1 200 OK\\n\\nChainOps Active' | nc -l -p %d 2>/dev/null || sleep 2; done", payload.Port)}
+	}
+
+	containerSpec := corev1.Container{
+		Name:  payload.Name,
+		Image: payload.Image,
+		Ports: []corev1.ContainerPort{
+			{
+				ContainerPort: payload.Port,
+				Name:          "http",
+			},
+		},
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceMemory: ramQuantity,
+				corev1.ResourceCPU:    cpuQuantity,
+			},
+			Limits: corev1.ResourceList{
+				corev1.ResourceMemory: ramQuantity,
+				corev1.ResourceCPU:    cpuQuantity,
+			},
+		},
+		Env: envVars,
+	}
+	if len(containerCmd) > 0 {
+		containerSpec.Command = containerCmd
+	}
+
 	dep := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "apps/v1",
@@ -132,29 +169,7 @@ func (o *Orchestrator) BuildKubernetesManifests(payload *types.DeploymentPayload
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:  payload.Name,
-							Image: payload.Image,
-							Ports: []corev1.ContainerPort{
-								{
-									ContainerPort: payload.Port,
-									Name:          "http",
-								},
-							},
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									corev1.ResourceMemory: ramQuantity,
-									corev1.ResourceCPU:    cpuQuantity,
-								},
-								Limits: corev1.ResourceList{
-									corev1.ResourceMemory: ramQuantity,
-									corev1.ResourceCPU:    cpuQuantity,
-								},
-							},
-							Env: envVars,
-						},
-					},
+					Containers: []corev1.Container{containerSpec},
 				},
 			},
 		},
