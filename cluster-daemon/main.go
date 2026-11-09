@@ -1,12 +1,16 @@
 package main
 
 import (
+	"embed"
 	"fmt"
+	"io"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"cluster-daemon/pkg/api"
 	"cluster-daemon/pkg/consensus"
@@ -14,6 +18,40 @@ import (
 	"cluster-daemon/pkg/k3s"
 	"cluster-daemon/pkg/ledger"
 )
+
+//go:embed all:dist
+var frontendFS embed.FS
+
+// serveSPA handles client-side React SPA routing and static assets
+func serveSPA(distFS fs.FS) http.Handler {
+	fileServer := http.FileServer(http.FS(distFS))
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/")
+		if path == "" {
+			f, err := distFS.Open("index.html")
+			if err == nil {
+				defer f.Close()
+				http.ServeContent(w, r, "index.html", time.Now(), f.(io.ReadSeeker))
+				return
+			}
+		}
+
+		f, err := distFS.Open(path)
+		if err != nil {
+			// SPA fallback: return index.html for React Router
+			idx, err := distFS.Open("index.html")
+			if err == nil {
+				defer idx.Close()
+				http.ServeContent(w, r, "index.html", time.Now(), idx.(io.ReadSeeker))
+				return
+			}
+			http.NotFound(w, r)
+			return
+		}
+		f.Close()
+		fileServer.ServeHTTP(w, r)
+	})
+}
 
 // corsMiddleware wraps handlers to allow frontend access
 func corsMiddleware(next http.Handler) http.Handler {
@@ -144,6 +182,13 @@ func main() {
 	// Health check
 	mux.HandleFunc("/api/health", server.HandleHealth)
 	mux.HandleFunc("/health", server.HandleHealth)
+
+	// Embed and serve React Frontend SPA at root
+	distSub, err := fs.Sub(frontendFS, "dist")
+	if err == nil {
+		mux.Handle("/", serveSPA(distSub))
+		log.Println("[Frontend] Embedded React Web Console ready at /")
+	}
 
 	addr := fmt.Sprintf(":%s", port)
 	log.Printf("[Daemon Ready] Listening for signed Web3 transactions on %s\n", addr)
