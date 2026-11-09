@@ -7,6 +7,8 @@
 \usepackage{geometry}
 \usepackage{titlesec}
 \usepackage{array}
+\usepackage{tabularx}
+\usepackage{adjustbox}
 \usepackage{multirow}
 \usepackage[table,dvipsnames]{xcolor}
 \makeatletter
@@ -25,7 +27,7 @@
 \usepackage{booktabs}
 \usepackage{enumitem}
 \usepackage{tikz}
-\usetikzlibrary{shapes,arrows,positioning,calc,fit,backgrounds}
+\usetikzlibrary{shapes,arrows,positioning,calc,fit,backgrounds,matrix,chains}
 \usepackage{hyperref}
 
 \hypersetup{
@@ -41,7 +43,7 @@
 \setlength{\headheight}{15pt}
 \setstretch{1.25}
 
-% Palette de couleurs professionnelle INPT (conforme au template de référence)
+% Palette de couleurs professionnelle INPT
 \definecolor{primary}{RGB}{0, 75, 160}
 \definecolor{secondary}{RGB}{240, 245, 255}
 \definecolor{tertiary}{RGB}{34, 139, 34}
@@ -91,7 +93,7 @@
     #1
 }
 
-% Configuration Listings pour code source et commandes
+% Configuration Listings
 \lstdefinelanguage{json}{
     basicstyle=\ttfamily\footnotesize,
     showstringspaces=false,
@@ -142,7 +144,7 @@
 \fancyhf{}
 \fancyhead[L]{\small \textcolor{primary}{\textbf{INPT -- BlockChain \& Smart Contract : Plateforme Cloud ChainOps}}}
 \fancyhead[R]{\small \textcolor{gray}{2026/2027}}
-\fancyfoot[L]{\small \textcolor{gray}{Filière SESNUM (INE3) -- Cluster Raspberry Pi \& K3s}}
+\fancyfoot[L]{\small \textcolor{gray}{Filière SESNUM (INE3) -- Cluster Bare-Metal Raspberry Pi}}
 \fancyfoot[R]{\small \textbf{Page \thepage}}
 \renewcommand{\headrulewidth}{0.6pt}
 \renewcommand{\footrulewidth}{0.4pt}
@@ -219,7 +221,7 @@
 
 Le paradigme dominant du Cloud Computing contemporain (incarné par les hyper-scalers tels qu'Amazon Web Services, Microsoft Azure et Google Cloud Platform) repose sur une architecture de confiance hautement centralisée. Dans ces environnements, les opérations critiques de provisionnement d'infrastructure, de contrôle d'accès et d'ordonnancement de conteneurs sont consignées dans des bases de données relationnelles traditionnelles et validées par des jetons de session ou des clés d'API statiques. Cette centralisation engendre un point de défaillance unique (\textit{Single Point of Failure}) et expose l'infrastructure aux altérations silencieuses de configuration par des administrateurs internes malveillants ou des compromissions de privilèges root.
 
-Ce projet, réalisé dans le cadre du module \textbf{BlockChain \& Smart Contract} de l'INPT sous la direction de \textbf{Mme Meryeme AYACHE}, introduit **ChainOps** : une plateforme d'orchestration cloud décentralisée nativement intégrée sur un cluster physique de 3 nœuds **Raspberry Pi 4 (ARM64)**. Dans cette architecture, toute demande de déploiement de conteneur est traitée exactement comme une transaction financière immuable soumise à un pipeline cryptographique en 5 étapes :
+Ce projet, réalisé dans le cadre du module \textbf{BlockChain \& Smart Contract} de l'INPT sous la direction de \textbf{Mme Meryeme AYACHE}, introduit \textbf{ChainOps} : une plateforme d'orchestration cloud décentralisée nativement intégrée sur un cluster physique de 3 nœuds \textbf{Raspberry Pi 4 (ARM64)}. Dans cette architecture, toute demande de déploiement de conteneur est traitée exactement comme une transaction financière immuable soumise à un pipeline cryptographique en 5 étapes :
 \begin{enumerate}[leftmargin=1.2cm]
     \item \textbf{Signature cryptographique cliente} via des paires de clés asymétriques $secp256k1$ (MetaMask ou clés locales d'opérateur) sans transmission de mot de passe ;
     \item \textbf{Smart Contract Gatekeeper en Go} appliquant des règles d'admission déterministes et validant les quotas physiques de RAM et de CPU pour prévenir tout épuisement de ressources (\textit{Out-Of-Memory}) ;
@@ -228,7 +230,7 @@ Ce projet, réalisé dans le cadre du module \textbf{BlockChain \& Smart Contrac
     \item \textbf{Ordonnancement physique K3s} programmant dynamiquement les pods via les bibliothèques officielles Kubernetes \texttt{client-go} sur le matériel cible.
 \end{enumerate}
 
-L'accès externe et l'interconnexion sécurisée entre nœuds physiques sont intégralement opérés au moyen de tunnels **Cloudflare Zero Trust Layer 4 TCP**, éliminant rigoureusement toute dépendance envers des adresses IP locales statiques ou des ports publics exposés.
+L'accès externe et l'interconnexion sécurisée entre nœuds physiques sont intégralement opérés au moyen de tunnels \textbf{Cloudflare Zero Trust Layer 4 TCP}, éliminant rigoureusement toute dépendance envers des adresses IP locales statiques ou des ports publics exposés.
 
 \vspace{0.4cm}
 \noindent\rule{\textwidth}{0.4pt}
@@ -237,9 +239,9 @@ L'accès externe et l'interconnexion sécurisée entre nœuds physiques sont int
 \section*{Abstract}
 \addcontentsline{toc}{section}{Abstract}
 
-Contemporary cloud orchestration infrastructures traditionally depend on centralized authority, relational databases, and static access control mechanisms, creating severe vulnerabilities against insider threats, configuration tampering, and state divergence. This report presents **ChainOps**, a decentralized, blockchain-driven cloud orchestration engine deployed on a physical 3-node **Raspberry Pi 4 ARM64** bare-metal cluster. 
+Contemporary cloud orchestration infrastructures traditionally depend on centralized authority, relational databases, and static access control mechanisms, creating severe vulnerabilities against insider threats, configuration tampering, and state divergence. This report presents \textbf{ChainOps}, a decentralized, blockchain-driven cloud orchestration engine deployed on a physical 3-node \textbf{Raspberry Pi 4 ARM64} bare-metal cluster. 
 
-By mapping container lifecycles to state machine transactions, ChainOps enforces client-side $secp256k1$ cryptographic signatures, Go-based deterministic smart contract resource gatekeeping, a distributed 3-node Raft consensus quorum, and immutable cryptographic persistence via **immudb** Merkle trees. Approved workloads are scheduled on live physical worker nodes through official Kubernetes \texttt{client-go} drivers. Public ingress and worker-to-master control plane traffic are tunneled through Cloudflare Zero Trust Layer 4 TCP bridges, achieving true zero-trust networking with zero public IP and zero local IP dependencies. Comprehensive experimental validations demonstrate sub-second consensus, zero-downtime persistence, and real-time mathematical tamper detection.
+By mapping container lifecycles to state machine transactions, ChainOps enforces client-side $secp256k1$ cryptographic signatures, Go-based deterministic smart contract resource gatekeeping, a distributed 3-node Raft consensus quorum, and immutable cryptographic persistence via \textbf{immudb} Merkle trees. Approved workloads are scheduled on live physical worker nodes through official Kubernetes \texttt{client-go} drivers. Public ingress and worker-to-master control plane traffic are tunneled through Cloudflare Zero Trust Layer 4 TCP bridges, achieving true zero-trust networking with zero public IP and zero local IP dependencies. Comprehensive experimental validations demonstrate sub-second consensus, zero-downtime persistence, and real-time mathematical tamper detection.
 
 \newpage
 
@@ -267,9 +269,38 @@ Pour résoudre ces vulnérabilités structurelles, notre projet explore une conv
 Dans ChainOps, une opération d'infrastructure (déploiement d'un pod, allocation de mémoire vive, modification de répliques ou résiliation de service) n'est jamais considérée comme un simple appel d'API impératif. Elle est formulée comme une \textbf{transaction d'état cryptographique}. Elle doit être signée asymétriquement par l'opérateur, soumise à l'évaluation déterministe d'un contrat intelligent de quota, approuvée par le quorum majoritaire des nœuds physiques du réseau, puis scellée dans un registre dont l'historique est vérifiable par un arbre de Merkle.
 \end{calloutbox}
 
+Le tableau~\ref{tab:comparison_cloud} compare les caractéristiques fondamentales des approches conventionnelles par rapport au paradigme proposé par ChainOps.
+
+\begin{table}[H]
+\centering
+\small
+\resizebox{\linewidth}{!}{
+\begin{tabular}{|l|p{6.5cm}|p{6.5cm}|}
+\hline
+\rowcolor{tableheader}
+\textbf{Caractéristique} & \textbf{Approche Cloud Conventionnelle (AWS/K8s)} & \textbf{Architecture ChainOps (Notre Solution)} \\
+\hline
+\textbf{Authentification} & Jetons de session, clés API statiques, RBAC & Signatures asymétriques $secp256k1$ (EIP-191) \\
+\hline
+\textbf{Politique d'Admission} & Webhooks déclaratifs admission controllers & Smart Contract déterministe en Go avec quotas matériels \\
+\hline
+\textbf{Modèle de Confiance} & Confiance implicite envers l'administrateur root & Décentralisation, consensus Raft physique (Quorum 2/3) \\
+\hline
+\textbf{Persistance de l'État} & Base relationnelle ou clé-valeur (\texttt{etcd}) & Registre immuable append-only (\texttt{immudb}) \\
+\hline
+\textbf{Vérification d'Audit} & Analyse externe a posteriori des journaux de logs & Preuves de Merkle mathématiques vérifiables en temps réel \\
+\hline
+\textbf{Réseau d'Ingress} & Exposition d'adresses IP publiques ou VPN privé & Tunnel chiffré Layer 4 TCP Zero Trust sans IP locale \\
+\hline
+\end{tabular}
+}
+\caption{Comparatif des mécanismes de confiance entre Cloud conventionnel et ChainOps}
+\label{tab:comparison_cloud}
+\end{table}
+
 \subsection{Objectifs du Projet et Cahier des Charges Académique}
 
-Dans le cadre du module \textbf{BlockChain \& Smart Contract}, l'objectif assigning à notre équipe consistait à concevoir, développer et déployer en conditions réelles une architecture complète répondant aux exigences suivantes :
+Dans le cadre du module \textbf{BlockChain \& Smart Contract}, l'objectif assigné à notre équipe consistait à concevoir, développer et déployer en conditions réelles une architecture complète répondant aux exigences suivantes :
 \begin{enumerate}[leftmargin=1.2cm]
     \item \textbf{Déploiement sur Matériel Physique Réel} : Mettre en œuvre un cluster opérationnel composé de trois Raspberry Pi 4 ARM64 physiques interconnectés en réseau local Gigabit ;
     \item \textbf{Zéro Dépendance aux Adresses IP Locales} : Permettre aux nœuds travailleurs (\textit{Workers}) et aux clients web de communiquer avec le plan de contrôle exclusivement via un nom de domaine public sécurisé par Cloudflare Zero Trust ;
@@ -293,8 +324,8 @@ La plateforme repose sur une grappe de 3 ordinateurs monocartes Raspberry Pi 4 M
 \begin{table}[H]
 \centering
 \small
-\renewcommand{\arraystretch}{1.3}
-\begin{tabular}{|l|l|l|l|p{4cm}|}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{|l|l|l|l|p{4.5cm}|}
 \hline
 \rowcolor{tableheader}
 \textbf{Nom du Nœud} & \textbf{Rôle Cluster} & \textbf{Architecture} & \textbf{IP Locale LAN} & \textbf{Spécifications Matérielles} \\
@@ -309,43 +340,50 @@ La plateforme repose sur une grappe de 3 ordinateurs monocartes Raspberry Pi 4 M
 \textbf{Total Cluster} & \textbf{Haute Disponibilité} & \textbf{ARM64 (12 Cores)} & \textbf{Réseau Découplé} & \textbf{11\,382 Mo RAM Totale} \\
 \hline
 \end{tabular}
+}
 \caption{Spécifications du cluster physique bare-metal Raspberry Pi 4}
 \label{tab:hardware_specs}
 \end{table}
 
-\subsection{Topologie Réseau Globale et Routage Zero Trust}
+\subsection{Topologie Globale de l'Infrastructure}
 
-La figure~\ref{fig:network_arch} illustre la topologie réseau de la plateforme. Aucun port de la passerelle domestique n'est ouvert vers l'extérieur (pas de redirection NAT ni de DMZ).
+La figure~\ref{fig:diag_topology} illustre la topologie globale de bout en bout reliant les tiers client, la bordure Cloudflare Edge et les nœuds matériels.
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[node distance=1.5cm, auto,
-    block/.style={rectangle, draw=primary, fill=secondary, text centered, rounded corners=3pt, minimum height=1cm, text width=4.5cm, font=\small},
-    edgeblock/.style={rectangle, draw=accentorange, fill=accentorange!10, text centered, rounded corners=3pt, minimum height=1cm, text width=6cm, font=\small},
-    line/.style={draw=primary, -latex', thick}]
+\resizebox{\linewidth}{!}{
+\begin{tikzpicture}[
+    node distance=1.5cm,
+    clientbox/.style={rectangle, draw=primary, fill=secondary, rounded corners=4pt, align=center, text width=6.5cm, minimum height=1.1cm, font=\small},
+    edgebox/.style={rectangle, draw=accentorange, fill=accentorange!15, rounded corners=4pt, align=center, text width=14cm, minimum height=1.2cm, font=\small},
+    masterbox/.style={rectangle, draw=primary, fill=tableheader, rounded corners=4pt, align=center, text width=14cm, minimum height=1.6cm, font=\small},
+    workerbox/.style={rectangle, draw=tertiary, fill=riskgreen, rounded corners=4pt, align=center, text width=6.5cm, minimum height=1.5cm, font=\small},
+    arr/.style={draw=primary, -latex', ultra thick},
+    tcpstream/.style={draw=accentorange, -latex', thick, dashed}
+]
 
-    \node [block] (client) {\textbf{Client Web3 / Navigateur}\\\small (MetaMask / Local $secp256k1$)};
-    \node [edgeblock, below of=client, node distance=2.2cm] (cf) {\textbf{Cloudflare Zero Trust Edge Network}\\\small \texttt{bc.aslouneyahya.com} (HTTPS Port 443)\\\small \texttt{k3s.aslouneyahya.com} (TCP Port 6443)};
+    \node [clientbox] (client) {\textbf{Tiers Client Web3}\\\footnotesize Développeur / Opérateur (MetaMask ou Clé Locale)};
+    \node [edgebox, below of=client, node distance=2.2cm] (cf) {\textbf{Bordure Réseau Cloudflare Zero Trust Edge}\\\footnotesize \texttt{bc.aslouneyahya.com} (HTTPS Port 443 $\to$ HTTP Port 8080)\\\footnotesize \texttt{k3s.aslouneyahya.com} (Layer 4 TCP $\to$ TCP Port 6443)};
+    \node [masterbox, below of=cf, node distance=2.6cm] (master) {\textbf{Raspberry Pi Maître : \texttt{pi-node-01} (LAN: 192.168.1.212)}\\\footnotesize Démon Go ChainOps (:8080) $\bullet$ immudb Ledger (:3322) $\bullet$ K3s Control Plane Server (TCP :6443)};
     
-    \node [block, below of=cf, node distance=2.4cm] (master) {\textbf{pi-node-01 (Master Pi)}\\\small Démon Go ChainOps (:8080)\\\small Registre immudb (:3322)\\\small Serveur K3s Control Plane (:6443)};
-    
-    \node [block, below left of=master, node distance=4cm, xshift=-1cm] (w1) {\textbf{pi-worker-1-afe458a1}\\\small K3s Agent \& containerd\\\small Pont TCP tunnel local :6443};
-    \node [block, below right of=master, node distance=4cm, xshift=1cm] (w2) {\textbf{pi-worker-2-d50675de}\\\small K3s Agent \& containerd\\\small Pont TCP tunnel local :6443};
+    \node [workerbox, below of=master, node distance=2.6cm, xshift=-3.8cm] (w1) {\textbf{Worker 1 : \texttt{pi-worker-1-afe458a1}}\\\footnotesize Pont TCP local :6443 $\bullet$ Agent K3s $\bullet$ containerd\\\footnotesize Pods : \texttt{test2} (python:3.11-alpine)};
+    \node [workerbox, below of=master, node distance=2.6cm, xshift=3.8cm] (w2) {\textbf{Worker 2 : \texttt{pi-worker-2-d50675de}}\\\footnotesize Pont TCP local :6443 $\bullet$ Agent K3s $\bullet$ containerd\\\footnotesize Pods : \texttt{test} (service web)};
 
-    \path [line] (client) -- node[right]{\footnotesize Requêtes signées EIP-191} (cf);
-    \path [line] (cf) -- node[right]{\footnotesize Tunnel Chiffré cloudflared} (master);
-    \path [line, dashed] (cf) -| node[above, sloped]{\footnotesize TCP Stream mTLS} (w1);
-    \path [line, dashed] (cf) -| node[above, sloped]{\footnotesize TCP Stream mTLS} (w2);
-    \path [line] (master) -- node[above, sloped]{\footnotesize Ordonnancement Pods} (w1);
-    \path [line] (master) -- node[above, sloped]{\footnotesize Ordonnancement Pods} (w2);
+    \path [arr] (client) -- node[right]{\footnotesize Requêtes signées EIP-191} (cf);
+    \path [arr] (cf) -- node[right]{\footnotesize Tunnel Chiffré cloudflared} (master);
+    \path [tcpstream] (cf.south -| w1.north) -- node[left, font=\footnotesize]{mTLS TCP Stream} (w1.north);
+    \path [tcpstream] (cf.south -| w2.north) -- node[right, font=\footnotesize]{mTLS TCP Stream} (w2.north);
+    \path [arr] (master) -| (w1);
+    \path [arr] (master) -| (w2);
 \end{tikzpicture}
-\caption{Architecture réseau Zero Trust avec routage Layer 4 TCP public}
-\label{fig:network_arch}
+}
+\caption{Architecture topologique globale bare-metal et flux Zero Trust}
+\label{fig:diag_topology}
 \end{figure}
 
-\subsection{Résolution du Défi d'Ingress : Du Proxy HTTPS Layer 7 au Tunnel TCP Layer 4}
+\subsection{Résolution du Défi d'Ingress : Du Proxy HTTPS au Tunnel Layer 4 TCP}
 
-L'un des défis d'ingénierie majeurs rencontrés lors du déploiement a concerné l'interconnexion des nœuds ouvriers (\textit{Workers}) avec le serveur maître K3s à travers le réseau public.
+L'un des défis d'ingénierie majeurs a concerné l'interconnexion des nœuds ouvriers avec le serveur maître K3s à travers le réseau public.
 
 \begin{alertwarning}
 \textbf{Analyse d'Échec Initial (Proxy HTTPS Layer 7) :}
@@ -357,7 +395,7 @@ Failed to connect to https://127.0.0.1:6444/cacerts: 403 Forbidden
 \end{alertwarning}
 
 \begin{calloutbox}[Solution Implémentée : Le Pont Tunnel Layer 4 TCP]
-Pour préserver l'intégrité de la liaison mTLS sans exposer d'adresse IP publique sur le Master, nous avons configuré le tunnel Cloudflare en mode **Layer 4 TCP brut** :
+Pour préserver l'intégrité de la liaison mTLS sans exposer d'adresse IP publique sur le Master, nous avons configuré le tunnel Cloudflare en mode \textbf{Layer 4 TCP brut} :
 \begin{itemize}
     \item Configuration Cloudflare Edge : Redirection du flux \texttt{k3s.aslouneyahya.com} directement en \texttt{tcp://127.0.0.1:6443} ;
     \item Sur chaque nœud travailleur, un service d'arrière-plan \texttt{k3s-tcp-tunnel.service} exécute :
@@ -368,6 +406,35 @@ cloudflared access tcp --hostname k3s.aslouneyahya.com --url 127.0.0.1:6443
 \end{itemize}
 \end{calloutbox}
 
+La figure~\ref{fig:diag_network_routing} détaille le flux d'entrée réseau et l'isolation mTLS garantie par cette architecture.
+
+\begin{figure}[H]
+\centering
+\resizebox{\linewidth}{!}{
+\begin{tikzpicture}[
+    node distance=2.2cm,
+    netbox/.style={rectangle, draw=primary, fill=secondary, rounded corners=4pt, align=center, text width=4.2cm, minimum height=1.1cm, font=\small},
+    cfbox/.style={rectangle, draw=accentorange, fill=accentorange!15, rounded corners=4pt, align=center, text width=4.8cm, minimum height=1.1cm, font=\small},
+    arr/.style={draw=primary, -latex', ultra thick}
+]
+    \node [netbox] (browser) at (0,0) {\textbf{Navigateur Client}\\\footnotesize https://bc.aslouneyahya.com};
+    \node [cfbox] (cfedge) at (6,0) {\textbf{Cloudflare Edge}\\\footnotesize Terminaison SSL HTTPS (8080)};
+    \node [netbox] (godae) at (12,0) {\textbf{Démon Go ChainOps}\\\footnotesize Serveur HTTP unifié (:8080)};
+
+    \node [netbox] (workers) at (0,-2.2) {\textbf{Agents Workers K3s}\\\footnotesize localhost:6443};
+    \node [cfbox] (cftcp) at (6,-2.2) {\textbf{Cloudflare Edge (TCP)}\\\footnotesize Flux TCP brut sans terminaison TLS};
+    \node [netbox] (k3sserver) at (12,-2.2) {\textbf{K3s API Server}\\\footnotesize Validation mTLS native (:6443)};
+
+    \path [arr] (browser) -- (cfedge);
+    \path [arr] (cfedge) -- (godae);
+    \path [arr] (workers) -- (cftcp);
+    \path [arr] (cftcp) -- (k3sserver);
+\end{tikzpicture}
+}
+\caption{Routage réseau d'entrée et isolation mTLS via tunnel Layer 4 TCP}
+\label{fig:diag_network_routing}
+\end{figure}
+
 \newpage
 
 % ==============================================================================
@@ -375,27 +442,57 @@ cloudflared access tcp --hostname k3s.aslouneyahya.com --url 127.0.0.1:6443
 % ==============================================================================
 \section{Le Moteur Blockchain en 5 Étapes (Fonctionnement Interne)}
 
-Le cycle de vie de toute ressource provisionnée sur ChainOps obéit à un pipeline strict découpé en cinq phases séquentielles indépendantes, synthétisé par la figure~\ref{fig:pipeline_seq}.
+Le cycle de vie de toute ressource provisionnée sur ChainOps obéit à un pipeline strict découpé en cinq phases séquentielles indépendantes, illustré par le diagramme de séquence de la figure~\ref{fig:diag_sequence}.
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[node distance=1.3cm, auto,
-    stepbox/.style={rectangle, draw=primary, fill=secondary, text centered, rounded corners=4pt, minimum height=1.1cm, text width=13cm, font=\small},
-    arrow/.style={draw=primary, -latex', ultra thick}]
+\resizebox{\linewidth}{!}{
+\begin{tikzpicture}[
+    font=\small,
+    lifeline/.style={draw=gray!60, dashed, thick},
+    actor/.style={rectangle, draw=primary, fill=primary, text=white, font=\bfseries\small, rounded corners=3pt, minimum width=2.6cm, minimum height=0.9cm},
+    msg/.style={draw=primary, -latex', thick},
+    ret/.style={draw=tertiary, -latex', thick, dashed},
+    note/.style={rectangle, draw=accentorange, fill=accentorange!15, font=\footnotesize, rounded corners=3pt, text width=3.8cm, text centered}
+]
 
-    \node [stepbox] (s1) {\textbf{Étape 1 : Cryptographie Côté Client (React + ethers.js)}\\Signature $secp256k1$ canonique du payload JSON (MetaMask ou Clé Privée Locale)};
-    \node [stepbox, below of=s1, node distance=1.7cm] (s2) {\textbf{Étape 2 : Smart Contract Gatekeeper (Démon Go)}\\Récupération d'adresse via \texttt{ecrecover} et validation des quotas stricts de RAM};
-    \node [stepbox, below of=s2, node distance=1.7cm] (s3) {\textbf{Étape 3 : Consensus Distribué Raft (Quorum 3 Nœuds)}\\Diffusion de la proposition et accord majoritaire ($N/2 + 1 = 2$ Pis physiques requis)};
-    \node [stepbox, below of=s3, node distance=1.7cm] (s4) {\textbf{Étape 4 : Registre Immuable immudb (Merkle Hash Chain)}\\Scellement du bloc SHA-256 et recalcul de la racine cryptographique de Merkle};
-    \node [stepbox, below of=s4, node distance=1.7cm] (s5) {\textbf{Étape 5 : Ordonnancement Physique K3s (client-go)}\\Génération dynamique des manifests et programmation du pod sur un worker};
+    % Acteurs
+    \node[actor] (dev) at (0,0) {Client Web3};
+    \node[actor] (sc) at (3.8,0) {Smart Contract};
+    \node[actor] (raft) at (7.6,0) {Quorum Raft};
+    \node[actor] (immudb) at (11.4,0) {immudb Ledger};
+    \node[actor] (k3s) at (15.2,0) {K3s Scheduler};
 
-    \path [arrow] (s1) -- (s2);
-    \path [arrow] (s2) -- (s3);
-    \path [arrow] (s3) -- (s4);
-    \path [arrow] (s4) -- (s5);
+    % Lignes de vie
+    \draw[lifeline] (dev) -- (0,-9);
+    \draw[lifeline] (sc) -- (3.8,-9);
+    \draw[lifeline] (raft) -- (7.6,-9);
+    \draw[lifeline] (immudb) -- (11.4,-9);
+    \draw[lifeline] (k3s) -- (15.2,-9);
+
+    % Étape 1 : Signature cliente
+    \draw[msg] (0,-1.2) -- node[above, font=\footnotesize]{1. POST payload + Signature $secp256k1$} (3.8,-1.2);
+    
+    % Étape 2 : Smart contract
+    \draw[msg] (3.8,-2.0) -- node[above, font=\footnotesize]{2. ecrecover + Quota RAM $\le$ 11382 Mo} (3.8,-2.6);
+    
+    % Étape 3 : Raft
+    \draw[msg] (3.8,-3.2) -- node[above, font=\footnotesize]{3. ProposeAndAgree(payloadHash)} (7.6,-3.2);
+    \draw[msg] (7.6,-4.0) -- node[above, font=\footnotesize]{Vote 3/3 Raspberry Pis physiques} (7.6,-4.6);
+    \draw[ret] (7.6,-5.2) -- node[above, font=\footnotesize]{ConsensusReceipt (Quorum Validé)} (3.8,-5.2);
+
+    % Étape 4 : immudb
+    \draw[msg] (3.8,-6.0) -- node[above, font=\footnotesize]{4. CommitTx(BlockHash, MerkleRoot)} (11.4,-6.0);
+    \draw[ret] (11.4,-6.8) -- node[above, font=\footnotesize]{Preuve d'inclusion certifiée} (3.8,-6.8);
+
+    % Étape 5 : K3s
+    \draw[msg] (3.8,-7.6) -- node[above, font=\footnotesize]{5. client-go : Déploiement Pod sur Worker} (15.2,-7.6);
+    \draw[ret] (15.2,-8.4) -- node[above, font=\footnotesize]{Pod Running (1/1 Ready)} (0,-8.4);
+
 \end{tikzpicture}
-\caption{Le pipeline cryptographique en 5 étapes pour chaque transaction d'infrastructure}
-\label{fig:pipeline_seq}
+}
+\caption{Diagramme de séquence détaillé du pipeline cryptographique en 5 étapes}
+\label{fig:diag_sequence}
 \end{figure}
 
 \subsection{Étape 1 : Cryptographie Côté Client et Signatures Asymétriques}
@@ -421,8 +518,8 @@ m = \text{Keccak256}(\text{"\textbackslash x19Ethereum Signed Message:\textbacks
 
 La signature résultante $\sigma = (r, s, v)$ est générée au moyen de la courbe elliptique $secp256k1$. Le frontend prend en charge deux modes d'authentification :
 \begin{itemize}
-    \item **Extension MetaMask** : Signature matérielle interactive dans le navigateur ;
-    \item **Paire de clés locale d'opérateur** : Génération d'une clé privée éphémère ou persistante stockée en \texttt{localStorage}, permettant de signer les requêtes en moins d'une milliseconde sans dépendre d'extensions externes.
+    \item \textbf{Extension MetaMask} : Signature matérielle interactive dans le navigateur ;
+    \item \textbf{Paire de clés locale d'opérateur} : Génération d'une clé privée éphémère ou persistante stockée en \texttt{localStorage}, permettant de signer les requêtes en moins d'une milliseconde sans dépendre d'extensions externes.
 \end{itemize}
 
 \subsection{Étape 2 : Le Smart Contract Gatekeeper en Go}
@@ -443,15 +540,56 @@ recoveredAddress := crypto.PubkeyToAddress(*pubKey).Hex()
     Si la condition est violée, le contrat rejette la transaction (\texttt{403 Forbidden}), protégeant ainsi le cluster physique contre les blocages mémoire et les arrêts brutaux du noyau Linux.
 \end{enumerate}
 
+La figure~\ref{fig:diag_smart_contract_flow} explicite le logigramme décisionnel du Smart Contract avant toute sollicitation du réseau Raft.
+
+\begin{figure}[H]
+\centering
+\resizebox{\linewidth}{!}{
+\begin{tikzpicture}[
+    font=\small,
+    node distance=1.8cm,
+    start/.style={rectangle, draw=primary, fill=primary, text=white, font=\bfseries\small, rounded corners=3pt, align=center, text width=5cm, minimum height=1cm},
+    check/.style={diamond, draw=primary, fill=tableheader, aspect=2.2, align=center, font=\footnotesize, inner sep=2pt, text width=3.8cm},
+    pass/.style={rectangle, draw=tertiary, fill=riskgreen, font=\bfseries\footnotesize, rounded corners=3pt, align=center, text width=4.2cm, minimum height=0.8cm},
+    fail/.style={rectangle, draw=riskred!80!black, fill=riskred, font=\bfseries\footnotesize, rounded corners=3pt, align=center, text width=4.6cm, minimum height=0.8cm},
+    arr/.style={draw=primary, -latex', thick}
+]
+
+    \node [start] (init) at (0,0) {Requête de Déploiement :\\POST /api/deployments};
+    \node [check] (c1) at (0,-2.0) {Signature valide ?\\(\texttt{ecrecover} correspond)};
+    \node [fail] (err1) at (6.0,-2.0) {401 Unauthorized :\\Signature Forgée / Invalide};
+
+    \node [check] (c2) at (0,-4.4) {RAM conteneur $\le$ 2048 Mo\\et DNS-1123 valide ?};
+    \node [fail] (err2) at (6.0,-4.4) {400 Bad Request :\\Nom invalide ou taille excessive};
+
+    \node [check] (c3) at (0,-6.8) {$\text{RAM}_{\text{allouée}} + \text{RAM}_{\text{demandée}}$\\$\le 11\,382$ Mo (Budget Matériel) ?};
+    \node [fail] (err3) at (6.0,-6.8) {403 Forbidden :\\Quota RAM Cluster Dépassé};
+
+    \node [pass] (ok) at (0,-9.0) {Validation Smart Contract Approuvée\\$\rightarrow$ Transmission au Consensus Raft};
+
+    \path [arr] (init) -- (c1);
+    \path [arr] (c1) -- node[above, font=\footnotesize]{Non} (err1);
+    \path [arr] (c1) -- node[right, font=\footnotesize]{Oui} (c2);
+    \path [arr] (c2) -- node[above, font=\footnotesize]{Non} (err2);
+    \path [arr] (c2) -- node[right, font=\footnotesize]{Oui} (c3);
+    \path [arr] (c3) -- node[above, font=\footnotesize]{Non} (err3);
+    \path [arr] (c3) -- node[right, font=\footnotesize]{Oui} (ok);
+
+\end{tikzpicture}
+}
+\caption{Logigramme de décision du Smart Contract Gatekeeper}
+\label{fig:diag_smart_contract_flow}
+\end{figure}
+
 \subsection{Étape 3 : Moteur de Consensus Distribué Raft}
 
-Une proposition validée par le contrat intelligent est soumise au moteur de consensus distribué Raft (\texttt{pkg/consensus/raft.go}). 
+Une proposition validée par le contrat intelligent est soumise au moteur de consensus distribué Raft (\texttt{pkg/consensus/raft.go}).
 
 \begin{table}[H]
 \centering
 \small
-\renewcommand{\arraystretch}{1.3}
-\begin{tabular}{|l|l|p{8cm}|}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{|l|l|p{8.5cm}|}
 \hline
 \rowcolor{tableheader}
 \textbf{Paramètre Raft} & \textbf{Valeur de Production} & \textbf{Justification Technique} \\
@@ -465,22 +603,132 @@ Une proposition validée par le contrat intelligent est soumise au moteur de con
 \textbf{Délai d'Élection} & 300 ms -- 500 ms & Évite les votes divisés (\textit{Split Votes}) par gigue aléatoire \\
 \hline
 \end{tabular}
+}
 \caption{Paramètres opérationnels du protocole de consensus Raft}
 \label{tab:raft_params}
 \end{table}
 
-Chaque nœud votant génère un vote signé cryptographiquement. Dès que le leader recueille 2 votes positifs sur 3 (ou 3 sur 3 en conditions nominales), il émet un reçu de consensus formel (\texttt{ConsensusReceipt}) prouvant mathématiquement l'accord du cluster.
+La figure~\ref{fig:diag_raft_scenarios} illustre les trois scénarios de tolérance aux pannes gérés par le quorum Raft physique.
+
+\begin{figure}[H]
+\centering
+\resizebox{\linewidth}{!}{
+\begin{tikzpicture}[
+    font=\small,
+    scen/.style={rectangle, draw=primary, fill=secondary, rounded corners=5pt, inner sep=8pt, text width=4.8cm, align=center},
+    nodeok/.style={rectangle, draw=tertiary, fill=riskgreen, rounded corners=3pt, text width=4.2cm, minimum height=0.7cm, align=center, font=\footnotesize},
+    nodefail/.style={rectangle, draw=riskred!80!black, fill=riskred, rounded corners=3pt, text width=4.2cm, minimum height=0.7cm, align=center, font=\footnotesize},
+    resok/.style={rectangle, draw=tertiary, fill=tertiary, text=white, font=\bfseries\footnotesize, rounded corners=3pt, text width=4.2cm, minimum height=0.8cm, align=center},
+    resfail/.style={rectangle, draw=riskred!80!black, fill=riskred!80!black, text=white, font=\bfseries\footnotesize, rounded corners=3pt, text width=4.2cm, minimum height=0.8cm, align=center}
+]
+
+    % Scénario A
+    \node [scen] (scenA) at (0,0) {
+        \textbf{\textcolor{primary}{Scénario A : Quorum 3/3}}\\[0.2cm]
+        \begin{tikzpicture}
+            \node [nodeok] (a1) at (0,0) {pi-node-01 : Vote OUI};
+            \node [nodeok] (a2) at (0,-0.8) {pi-worker-1 : Vote OUI};
+            \node [nodeok] (a3) at (0,-1.6) {pi-worker-2 : Vote OUI};
+            \node [resok] (ar) at (0,-2.6) {Quorum Atteint (3/3)\\ \small Transaction Validée};
+            \draw[-latex', thick] (a3) -- (ar);
+        \end{tikzpicture}
+    };
+
+    % Scénario B
+    \node [scen] (scenB) at (5.5,0) {
+        \textbf{\textcolor{primary}{Scénario B : 1 Pi Hors-Ligne}}\\[0.2cm]
+        \begin{tikzpicture}
+            \node [nodeok] (b1) at (0,0) {pi-node-01 : Vote OUI};
+            \node [nodeok] (b2) at (0,-0.8) {pi-worker-1 : Vote OUI};
+            \node [nodefail] (b3) at (0,-1.6) {pi-worker-2 : CRASHÉ};
+            \node [resok] (br) at (0,-2.6) {Majorité Atteinte (2/3)\\ \small Haute Disponibilité OK};
+            \draw[-latex', thick] (b3) -- (br);
+        \end{tikzpicture}
+    };
+
+    % Scénario C
+    \node [scen] (scenC) at (11.0,0) {
+        \textbf{\textcolor{primary}{Scénario C : Partition Réseau}}\\[0.2cm]
+        \begin{tikzpicture}
+            \node [nodeok] (c1) at (0,0) {pi-node-01 : Vote OUI};
+            \node [nodefail] (c2) at (0,-0.8) {pi-worker-1 : ISOLÉ};
+            \node [nodefail] (c3) at (0,-1.6) {pi-worker-2 : ISOLÉ};
+            \node [resfail] (cr) at (0,-2.6) {Quorum Échoué (1/3)\\ \small Mode Sécurisé Activé};
+            \draw[-latex', thick] (c3) -- (cr);
+        \end{tikzpicture}
+    };
+
+\end{tikzpicture}
+}
+\caption{Scénarios opérationnels du quorum Raft : nominal (3/3), tolérance (2/3) et scission (1/3)}
+\label{fig:diag_raft_scenarios}
+\end{figure}
 
 \subsection{Étape 4 : Registre Immuable immudb et Arbre de Merkle}
 
-Le reçu de consensus et les métadonnées de déploiement sont persistés dans **immudb**, une base de données de registre immuable à hautes performances développée en Go.
+Le reçu de consensus et les métadonnées de déploiement sont persistés dans \textbf{immudb}, une base de données de registre immuable à hautes performances développée en Go.
 
 Chaque entrée constitue une transaction numérotée séquentiellement ($n$), liée au bloc précédent par une fonction de hachage à sens unique :
 \begin{equation}
 \text{BlockHash}_n = \text{SHA256}(\text{BlockHash}_{n-1} \,\|\, \text{TxID}_n \,\|\, \text{Timestamp} \,\|\, \text{SignerAddress} \,\|\, \text{PayloadHash})
 \end{equation}
 
-Simultanément, immudb recalcule la racine de l'arbre de Merkle englobant l'intégralité des transactions du cluster. Cette empreinte globale est exposée en temps réel sur le tableau de bord de la plateforme sous la variable \texttt{Merkle Root} (ex. \texttt{0xedb3e527...4d01d0}).
+Simultanément, immudb recalcule la racine de l'arbre de Merkle englobant l'intégralité des transactions du cluster, comme modélisé dans la figure~\ref{fig:diag_merkle_chain}.
+
+\begin{figure}[H]
+\centering
+\resizebox{\linewidth}{!}{
+\begin{tikzpicture}[
+    font=\small,
+    tx/.style={rectangle, draw=primary, fill=secondary, rounded corners=3pt, minimum width=3.4cm, minimum height=1.3cm, align=center, font=\footnotesize},
+    leaf/.style={rectangle, draw=tertiary, fill=riskgreen, rounded corners=3pt, minimum width=2.4cm, minimum height=0.7cm, align=center, font=\footnotesize},
+    parentnode/.style={rectangle, draw=primary, fill=tableheader, rounded corners=3pt, minimum width=3.6cm, minimum height=0.7cm, align=center, font=\footnotesize},
+    root/.style={rectangle, draw=accentorange, fill=accentorange!20, font=\bfseries\small, rounded corners=3pt, minimum width=8cm, minimum height=0.9cm, align=center},
+    arr/.style={draw=primary, -latex', thick},
+    chainarr/.style={draw=tertiary, -latex', ultra thick}
+]
+
+    % Chaînage de blocs
+    \node [tx] (g) at (0,0) {\textbf{Genesis State}\\Hash: 0x0000...};
+    \node [tx] (tx1) at (4.2,0) {\textbf{Tx \#1 : DEPLOY}\\Hash: 0x2b3ff0...};
+    \node [tx] (tx2) at (8.4,0) {\textbf{Tx \#2 : DEPLOY}\\Hash: 0x8a1c9e...};
+    \node [tx] (tx3) at (12.6,0) {\textbf{Tx \#3 : STOP}\\Hash: 0xf42d11...};
+
+    \path [chainarr] (g) -- node[above, font=\tiny]{SHA-256} (tx1);
+    \path [chainarr] (tx1) -- node[above, font=\tiny]{SHA-256} (tx2);
+    \path [chainarr] (tx2) -- node[above, font=\tiny]{SHA-256} (tx3);
+
+    % Feuilles de Merkle
+    \node [leaf] (l1) at (2.1,-2.0) {Leaf 1: Tx \#1};
+    \node [leaf] (l2) at (5.5,-2.0) {Leaf 2: Tx \#2};
+    \node [leaf] (l3) at (8.9,-2.0) {Leaf 3: Tx \#3};
+    \node [leaf] (l4) at (12.3,-2.0) {Leaf 4: Tx \#3};
+
+    \path [arr] (tx1) -- (l1);
+    \path [arr] (tx2) -- (l2);
+    \path [arr] (tx3) -- (l3);
+    \path [arr] (tx3) -- (l4);
+
+    % Parents
+    \node [parentnode] (p1) at (3.8,-3.2) {Parent 1 = H(Leaf 1 + 2)};
+    \node [parentnode] (p2) at (10.6,-3.2) {Parent 2 = H(Leaf 3 + 4)};
+
+    \path [arr] (l1) -- (p1);
+    \path [arr] (l2) -- (p1);
+    \path [arr] (l3) -- (p2);
+    \path [arr] (l4) -- (p2);
+
+    % Racine de Merkle
+    \node [root] (r) at (7.2,-4.5) {Racine de Merkle (Merkle Root) = H(Parent 1 + Parent 2)\\\footnotesize Empreinte Globale : \texttt{0xedb3e527...4d01d0}};
+
+    \path [arr] (p1) -- (r);
+    \path [arr] (p2) -- (r);
+
+\end{tikzpicture}
+}
+\caption{Chaînage cryptographique d'état SHA-256 et arbre de Merkle dans immudb}
+\label{fig:diag_merkle_chain}
+\end{figure}
 
 \subsection{Étape 5 : Ordonnancement Physique K3s via client-go}
 
@@ -490,6 +738,80 @@ Une fois la transaction scellée dans immudb, l'orchestrateur K3s (\texttt{pkg/k
     \item \textbf{Affinité Matérielle} : Injection systématique d'une contrainte \texttt{nodeAffinity} (\texttt{kubernetes.io/hostname}) pour contraindre l'exécution du pod sur un nœud travailleur physique (\texttt{pi-worker-1} ou \texttt{pi-worker-2}) et décharger le Master ;
     \item \textbf{Point d'Entrée Anti-CrashLoopBackOff} : Pour les images interactives dépourvues de terminal TTY (ex. \texttt{python:3.11-alpine}), l'orchestrateur injecte un serveur HTTP d'arrière-plan autonome (\texttt{python3 -m http.server <port>}), garantissant un statut immédiat \texttt{Running (1/1 Ready)}.
 \end{itemize}
+
+La figure~\ref{fig:diag_state_machine} modélise l'ensemble des transitions d'états d'une ressource conteneurisée.
+
+\begin{figure}[H]
+\centering
+\resizebox{\linewidth}{!}{
+\begin{tikzpicture}[
+    font=\small,
+    state/.style={rectangle, draw=primary, fill=secondary, rounded corners=6pt, align=center, minimum width=3.4cm, minimum height=0.9cm},
+    fin/.style={circle, draw=primary, double, fill=primary, minimum size=0.4cm},
+    arr/.style={draw=primary, -latex', thick}
+]
+
+    \node [state] (form) at (0,0) {Saisie Formulaire};
+    \node [state] (signed) at (4.5,0) {Signature EIP-191};
+    \node [state] (sc) at (9.0,0) {Smart Contract};
+    \node [state] (raft) at (13.5,0) {Consensus Raft};
+
+    \node [state] (rej) at (9.0,-2.0) {Rejeté (Erreur 4xx)};
+    \node [state] (ledger) at (13.5,-2.0) {Scellé immudb};
+    \node [state] (k3s) at (9.0,-4.0) {Manifest Généré};
+    \node [state] (run) at (4.5,-4.0) {Pod Running (1/1)};
+    \node [state] (term) at (0,-4.0) {Résiliation Signée};
+
+    \path [arr] (form) -- (signed);
+    \path [arr] (signed) -- (sc);
+    \path [arr] (sc) -- (raft);
+    \path [arr] (sc) -- node[left, font=\footnotesize]{Quota dépassé} (rej);
+    \path [arr] (raft) -- node[right, font=\footnotesize]{Quorum 3/3} (ledger);
+    \path [arr] (ledger) -- (k3s);
+    \path [arr] (k3s) -- (run);
+    \path [arr] (run) -- (term);
+
+\end{tikzpicture}
+}
+\caption{Machine à états finis du cycle de vie des déploiements conteneurisés}
+\label{fig:diag_state_machine}
+\end{figure}
+
+\subsection{Architecture Modulaire Interne du Démon Go}
+
+La figure~\ref{fig:diag_go_packages} illustre la structure des paquetages internes du démon Go ChainOps.
+
+\begin{figure}[H]
+\centering
+\resizebox{\linewidth}{!}{
+\begin{tikzpicture}[
+    font=\small,
+    api/.style={rectangle, draw=accentorange, fill=accentorange!15, rounded corners=4pt, align=center, minimum width=15cm, minimum height=1.1cm},
+    pkg/.style={rectangle, draw=primary, fill=secondary, rounded corners=4pt, align=center, minimum width=4.5cm, minimum height=1.4cm, font=\footnotesize},
+    arr/.style={draw=primary, -latex', thick}
+]
+
+    \node [api] (apilayer) at (0,0) {\textbf{Couche REST API (\texttt{pkg/api})}\\\footnotesize Endpoints : \texttt{/api/deployments}, \texttt{/api/cluster/stats}, \texttt{/api/ledger/audit}, \texttt{/api/health}};
+
+    \node [pkg] (crypto) at (-5.0,-2.4) {\textbf{pkg/crypto}\\\footnotesize ecrecover $\bullet$ Keccak256\\\footnotesize Vérification $secp256k1$};
+    \node [pkg] (contract) at (0,-2.4) {\textbf{pkg/contract}\\\footnotesize Smart Contract Gatekeeper\\\footnotesize Validation Quotas RAM/CPU};
+    \node [pkg] (consensus) at (5.0,-2.4) {\textbf{pkg/consensus}\\\footnotesize Moteur Raft 3 Nœuds\\\footnotesize Quorum \& Votes Signés};
+
+    \node [pkg] (ledger) at (-2.5,-4.6) {\textbf{pkg/ledger}\\\footnotesize Registre immudb Client\\\footnotesize Calcul Merkle \& Audit};
+    \node [pkg] (k3s) at (2.5,-4.6) {\textbf{pkg/k3s}\\\footnotesize client-go Kubernetes\\\footnotesize Manifest Builder \& Node Affinity};
+
+    \path [arr] (apilayer) -- (crypto);
+    \path [arr] (apilayer) -- (contract);
+    \path [arr] (apilayer) -- (consensus);
+    \path [arr] (contract) -- (ledger);
+    \path [arr] (consensus) -- (ledger);
+    \path [arr] (ledger) -- (k3s);
+
+\end{tikzpicture}
+}
+\caption{Architecture modulaire interne du démon Go ChainOps (\texttt{pkg/})}
+\label{fig:diag_go_packages}
+\end{figure}
 
 \newpage
 
@@ -513,42 +835,43 @@ où $\mathcal{H}$ désigne la fonction SHA-256 et $\|$ l'opérateur de concatén
 
 \subsection{Vérification d'Audit de Bout en Bout}
 
-L'endpoint public \texttt{GET /api/ledger/audit} permet à n'importe quel auditeur externe de vérifier l'intégrité intégrale de la plateforme sans nécessiter de privilèges administratifs. L'algorithme d'audit procède comme suit :
-\begin{enumerate}[leftmargin=1.2cm]
-    \item Extraction séquentielle de l'ensemble des blocs depuis $k = 1$ jusqu'à $N$ ;
-    \item Recalcul pas à pas de $H_k$ à partir du bloc précédent $H_{k-1}$ et des paramètres stockés ;
-    \item Comparaison du condensat recalculé avec la valeur scellée lors de l'enregistrement initial ;
-    \item Reconstruction de l'arbre de Merkle et vérification de la concordance de la racine calculée avec l'état racine courant.
-\end{enumerate}
+L'endpoint public \texttt{GET /api/ledger/audit} permet à n'importe quel auditeur externe de vérifier l'intégrité intégrale de la plateforme sans nécessiter de privilèges administratifs. La figure~\ref{fig:diag_tamper_detection} formalise le logigramme de cette vérification.
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[node distance=1.2cm, auto,
-    decision/.style={diamond, draw=primary, fill=tableheader, text centered, inner sep=0pt, font=\footnotesize, aspect=2},
-    block/.style={rectangle, draw=primary, fill=secondary, text centered, rounded corners=3pt, minimum height=0.9cm, text width=5cm, font=\small},
-    error/.style={rectangle, draw=accentorange, fill=riskred, text centered, rounded corners=3pt, minimum height=0.9cm, text width=4.5cm, font=\small},
-    success/.style={rectangle, draw=tertiary, fill=riskgreen, text centered, rounded corners=3pt, minimum height=0.9cm, text width=4.5cm, font=\small},
-    line/.style={draw=primary, -latex', thick}]
+\resizebox{\linewidth}{!}{
+\begin{tikzpicture}[
+    font=\small,
+    node distance=1.4cm,
+    stepb/.style={rectangle, draw=primary, fill=secondary, rounded corners=3pt, align=center, text width=5.2cm, minimum height=0.9cm},
+    dec/.style={diamond, draw=primary, fill=tableheader, aspect=2.2, align=center, font=\footnotesize, inner sep=2pt, text width=3.8cm},
+    ok/.style={rectangle, draw=tertiary, fill=riskgreen, font=\bfseries\small, rounded corners=3pt, align=center, text width=4.5cm, minimum height=0.9cm},
+    tamper/.style={rectangle, draw=riskred!80!black, fill=riskred, font=\bfseries\small, rounded corners=3pt, align=center, text width=4.8cm, minimum height=0.9cm},
+    arr/.style={draw=primary, -latex', thick}
+]
 
-    \node [block] (start) {Requête d'Audit :\\\texttt{GET /api/ledger/audit}};
-    \node [decision, below of=start, node distance=1.8cm] (d1) {$H_{k} == \text{RecalculatedHash}$ ?};
-    \node [error, right of=d1, node distance=5.5cm] (tamper) {\textbf{Altération Détectée}\\\small Intégrité compromise};
-    \node [decision, below of=d1, node distance=2.2cm] (d2) {Tous blocs vérifiés ?};
-    \node [block, below of=d2, node distance=2.0cm] (next) {Bloc suivant $k \leftarrow k+1$};
-    \node [decision, left of=d2, node distance=4.5cm] (d3) {$\text{Root}_{\text{calc}} == \text{Root}_{\text{ledger}}$ ?};
-    \node [success, below of=d3, node distance=2.2cm] (ok) {\textbf{100\,\% Conforme}\\\small Chaîne intègre et certifiée};
+    \node [stepb] (start) at (0,0) {Requête d'Audit :\\ \texttt{GET /api/ledger/audit}};
+    \node [dec] (d1) at (0,-1.8) {$H_{k} == \text{RecalculatedHash}$ ?};
+    \node [tamper] (tamper) at (5.5,-1.8) {\textbf{Altération Détectée}\\ \footnotesize Erreur : Hash non concordant};
 
-    \path [line] (start) -- (d1);
-    \path [line] (d1) -- node[above]{\footnotesize Non} (tamper);
-    \path [line] (d1) -- node[right]{\footnotesize Oui} (d2);
-    \path [line] (d2) -- node[right]{\footnotesize Non} (next);
-    \path [line] (next) |- (d1);
-    \path [line] (d2) -- node[above]{\footnotesize Oui} (d3);
-    \path [line] (d3) |- node[above]{\footnotesize Non} (tamper);
-    \path [line] (d3) -- node[right]{\footnotesize Oui} (ok);
+    \node [dec] (d2) at (0,-3.8) {Tous les $N$ blocs vérifiés ?};
+    \node [stepb] (next) at (0,-5.4) {Incrémenter $k \leftarrow k+1$};
+    \node [dec] (d3) at (-5.0,-3.8) {$\text{Root}_{\text{calc}} == \text{Root}_{\text{immudb}}$ ?};
+    \node [ok] (oknode) at (-5.0,-5.4) {\textbf{Intégrité 100\,\% Certifiée}\\ \footnotesize Chaîne \& Merkle valides};
+
+    \path [arr] (start) -- (d1);
+    \path [arr] (d1) -- node[above, font=\footnotesize]{Non} (tamper);
+    \path [arr] (d1) -- node[right, font=\footnotesize]{Oui} (d2);
+    \path [arr] (d2) -- node[right, font=\footnotesize]{Non} (next);
+    \path [arr] (next.east) -- ++(1.0,0) |- (d1.east);
+    \path [arr] (d2) -- node[above, font=\footnotesize]{Oui} (d3);
+    \path [arr] (d3) |- node[above, font=\footnotesize]{Non} (tamper);
+    \path [arr] (d3) -- node[right, font=\footnotesize]{Oui} (oknode);
+
 \end{tikzpicture}
-\caption{Algorithme de vérification cryptographique d'intégrité du registre}
-\label{fig:audit_flowchart}
+}
+\caption{Workflow de vérification d'audit et détection mathématique d'altération}
+\label{fig:diag_tamper_detection}
 \end{figure}
 
 \subsection{Démonstration de Détection d'Attaque Malveillante}
@@ -565,6 +888,66 @@ Dès l'exécution de l'altération, la prochaine requête d'audit renvoie imméd
 \end{lstlisting}
 La fraude est détectée instantanément, illustrant concrètement l'impossibilité de modifier silencieusement l'état de l'infrastructure.
 
+\subsection{Modèle Entité-Association (ERD) du Registre}
+
+La figure~\ref{fig:diag_erd} présente le schéma relationnel et conceptuel liant les requêtes signées, les réceptions de consensus et les pods physiques.
+
+\begin{figure}[H]
+\centering
+\resizebox{\linewidth}{!}{
+\begin{tikzpicture}[
+    font=\small,
+    entity/.style={rectangle, draw=primary, fill=secondary, rounded corners=3pt, text width=6.2cm, inner sep=6pt},
+    arr/.style={draw=primary, -latex', ultra thick}
+]
+
+    \node [entity] (req) at (0,0) {
+        \textbf{\textcolor{primary}{SignedDeploymentRequest}}\\[0.1cm]
+        \footnotesize
+        + signerAddress : string ($secp256k1$)\\
+        + signature : string (r, s, v)\\
+        + rawPayload : string (JSON)\\
+        + timestamp : int64
+    };
+
+    \node [entity] (tx) at (8,0) {
+        \textbf{\textcolor{primary}{LedgerTransaction (immudb)}}\\[0.1cm]
+        \footnotesize
+        + txId : uint64 (PK, séquentiel)\\
+        + blockHash : string (SHA-256)\\
+        + previousHash : string (SHA-256)\\
+        + merkleRoot : string (Arbre Merkle)\\
+        + quorumProof : ConsensusReceipt
+    };
+
+    \node [entity] (receipt) at (0,-3.5) {
+        \textbf{\textcolor{primary}{ConsensusReceipt (Raft)}}\\[0.1cm]
+        \footnotesize
+        + term : int64\\
+        + leaderNode : string (\texttt{pi-node-01})\\
+        + positiveVotes : int (3/3)\\
+        + quorumReached : bool (true)
+    };
+
+    \node [entity] (pod) at (8,-3.5) {
+        \textbf{\textcolor{primary}{K3sDeploymentStatus}}\\[0.1cm]
+        \footnotesize
+        + deploymentId : string (PK)\\
+        + nodeAssigned : string (\texttt{pi-worker-1})\\
+        + internalPodIp : string (10.42.x.x)\\
+        + phase : string (Running 1/1)
+    };
+
+    \path [arr] (req) -- node[above, font=\footnotesize]{génère} (tx);
+    \path [arr] (receipt) -- node[above, font=\footnotesize]{certifie} (tx);
+    \path [arr] (tx) -- node[right, font=\footnotesize]{programme} (pod);
+
+\end{tikzpicture}
+}
+\caption{Modèle Entité-Association (ERD) des transactions, du consensus et des pods}
+\label{fig:diag_erd}
+\end{figure}
+
 \newpage
 
 % ==============================================================================
@@ -576,19 +959,19 @@ L'ensemble des expérimentations a été mené directement sur le cluster physiq
 
 \subsection{Authentification Cryptographique et Interface de Connexion}
 
-La figure~\ref{fig:bc_login} présente l'interface d'accueil de la plateforme (\texttt{https://bc.aslouneyahya.com}).
+La figure~\ref{fig:bc_login} présente l'interface d'accueil de la plateforme (\url{https://bc.aslouneyahya.com}).
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.88\textwidth]{figures/bc_login.png}
+\includegraphics[width=0.82\linewidth]{figures/bc_login.png}
 \caption{Portail d'authentification Web3 offrant le choix entre MetaMask et Clé Locale}
 \label{fig:bc_login}
 \end{figure}
 
 L'utilisateur dispose de deux modes de signature non-custodiaux :
 \begin{itemize}
-    \item **Connect Web3 Wallet (MetaMask)** : Sollicite l'extension du navigateur pour une signature sécurisée avec confirmation visuelle ;
-    \item **Local Operator Keypair** : Génère une paire de clés cryptographiques $secp256k1$ directement dans l'environnement d'exécution du navigateur, permettant des déploiements instantanés sans dépendance externe.
+    \item \textbf{Connect Web3 Wallet (MetaMask)} : Sollicite l'extension du navigateur pour une signature sécurisée avec confirmation visuelle ;
+    \item \textbf{Local Operator Keypair} : Génère une paire de clés cryptographiques $secp256k1$ directement dans l'environnement d'exécution du navigateur, permettant des déploiements instantanés sans dépendance externe.
 \end{itemize}
 
 \subsection{Cycle de Déploiement en 5 Étapes et Quotas}
@@ -597,7 +980,7 @@ La figure~\ref{fig:new_deployment_steps} illustre la fenêtre modale guidant l'o
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.82\textwidth]{figures/new_deployment_steps.png}
+\includegraphics[width=0.82\linewidth]{figures/new_deployment_steps.png}
 \caption{Visualisation en direct des 5 étapes du pipeline lors d'un déploiement}
 \label{fig:new_deployment_steps}
 \end{figure}
@@ -610,7 +993,7 @@ La figure~\ref{fig:test2_running} démontre l'état opérationnel du conteneur \
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.88\textwidth]{figures/test2_running.png}
+\includegraphics[width=0.82\linewidth]{figures/test2_running.png}
 \caption{Conteneur \texttt{test2} en statut Running (1/1 Ready) sur le worker physique}
 \label{fig:test2_running}
 \end{figure}
@@ -619,7 +1002,7 @@ La figure~\ref{fig:test2_deployment} présente le volet d'inspection technique d
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.88\textwidth]{figures/test2_deployment.png}
+\includegraphics[width=0.82\linewidth]{figures/test2_deployment.png}
 \caption{Manifest Kubernetes généré dynamiquement et flux de logs en continu}
 \label{fig:test2_deployment}
 \end{figure}
@@ -630,16 +1013,16 @@ La figure~\ref{fig:nodes_consensus} présente le tableau de bord de supervision 
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.88\textwidth]{figures/nodes_consensus.png}
+\includegraphics[width=0.82\linewidth]{figures/nodes_consensus.png}
 \caption{Télémétrie en temps réel des trois Raspberry Pis physiques et état du quorum Raft}
 \label{fig:nodes_consensus}
 \end{figure}
 
 Les trois cartes matérielles reflètent les caractéristiques physiques réelles :
 \begin{itemize}
-    \item **pi-node-01** (Leader Raft, IP \texttt{192.168.1.212}) : Consomme 1\,410 Mo de RAM (plan de contrôle K3s, démon Go, immudb) ;
-    \item **pi-worker-1-afe458a1** (Follower Raft, IP \texttt{192.168.1.213}) : Consomme 1\,427 Mo de RAM, reflétant la charge du pod applicatif \texttt{test2} (badge \texttt{test2} visible) ;
-    \item **pi-worker-2-d50675de** (Follower Raft, IP \texttt{192.168.1.214}) : Consomme 810 Mo de RAM en état nominal.
+    \item \textbf{pi-node-01} (Leader Raft, IP \texttt{192.168.1.212}) : Consomme 1\,410 Mo de RAM (plan de contrôle K3s, démon Go, immudb) ;
+    \item \textbf{pi-worker-1-afe458a1} (Follower Raft, IP \texttt{192.168.1.213}) : Consomme 1\,427 Mo de RAM, reflétant la charge du pod applicatif \texttt{test2} (badge \texttt{test2} visible) ;
+    \item \textbf{pi-worker-2-d50675de} (Follower Raft, IP \texttt{192.168.1.214}) : Consomme 810 Mo de RAM en état nominal.
 \end{itemize}
 
 \subsection{Explorateur de Registre Blockchain et Racine de Merkle}
@@ -648,7 +1031,7 @@ La figure~\ref{fig:ledger} présente l'explorateur de blocs de la plateforme.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.88\textwidth]{figures/ledger.png}
+\includegraphics[width=0.82\linewidth]{figures/ledger.png}
 \caption{Explorateur de transactions immudb affichant les condensats SHA-256 et le quorum}
 \label{fig:ledger}
 \end{figure}
@@ -661,7 +1044,7 @@ La figure~\ref{fig:failed_deployment} démontre l'efficacité du contrat intelli
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.85\textwidth]{figures/failed_deployment.png}
+\includegraphics[width=0.82\linewidth]{figures/failed_deployment.png}
 \caption{Rejet immédiat par le Smart Contract d'une allocation excédant la mémoire physique}
 \label{fig:failed_deployment}
 \end{figure}
@@ -674,7 +1057,7 @@ La figure~\ref{fig:raspberry_master_kubectl} reproduit la capture photographique
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.88\textwidth]{figures/raspberry_master_kubectl.jpeg}
+\includegraphics[width=0.82\linewidth]{figures/raspberry_master_kubectl.jpeg}
 \caption{Console physique du Master Pi affichant \texttt{kubectl get nodes -o wide} et les pods réels}
 \label{fig:raspberry_master_kubectl}
 \end{figure}
@@ -711,13 +1094,13 @@ Les figures~\ref{fig:cloudflare_tunnels} et~\ref{fig:local_docker} complètent l
 
 \subsection{Spécification des Endpoints REST du Démon Go}
 
-Le tableau~\ref{tab:api_specs} récapitule l'ensemble des points d'accès exposés par le démon Go unifié sur \texttt{https://bc.aslouneyahya.com}.
+Le tableau~\ref{tab:api_specs} récapitule l'ensemble des points d'accès exposés par le démon Go unifié sur \url{https://bc.aslouneyahya.com}.
 
 \begin{table}[H]
 \centering
 \footnotesize
-\renewcommand{\arraystretch}{1.3}
-\begin{tabular}{|l|p{4.2cm}|p{6.3cm}|p{2.8cm}|}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{|l|p{5.8cm}|p{6.2cm}|p{3.0cm}|}
 \hline
 \rowcolor{tableheader}
 \textbf{Méthode} & \textbf{Point d'Accès} & \textbf{Description Fonctionnelle} & \textbf{Authentification} \\
@@ -749,6 +1132,7 @@ Le tableau~\ref{tab:api_specs} récapitule l'ensemble des points d'accès expos�
 \texttt{GET} & \texttt{/api/health} & Diagnostic de santé Raft, immudb et K3s & Public \\
 \hline
 \end{tabular}
+}
 \caption{Spécification complète des interfaces d'API REST du démon ChainOps}
 \label{tab:api_specs}
 \end{table}
@@ -789,7 +1173,7 @@ kubectl delete node pi-worker-2
 
 \subsection{Bilan des Réalisations Techniques et Académiques}
 
-Ce projet, réalisé au sein du département SESNUM de l'INPT sous la supervision de **Mme Meryeme AYACHE**, démontre avec succès la viabilité et les bénéfices concrets de l'application des concepts fondamentaux de la **Blockchain et des Smart Contracts** à la gestion d'infrastructures cloud physiques.
+Ce projet, réalisé au sein du département SESNUM de l'INPT sous la supervision de \textbf{Mme Meryeme AYACHE}, démontre avec succès la viabilité et les bénéfices concrets de l'application des concepts fondamentaux de la \textbf{Blockchain et des Smart Contracts} à la gestion d'infrastructures cloud physiques.
 
 Les principales contributions validées au cours de ce travail comprennent :
 \begin{itemize}[leftmargin=1.2cm]
