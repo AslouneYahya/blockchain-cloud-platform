@@ -19,6 +19,18 @@ export function getOrCreateLocalWallet() {
  * Detect available Web3 wallet provider (MetaMask or fallback local dev key)
  */
 export async function connectWallet() {
+  const chosenType = typeof window !== 'undefined' ? localStorage.getItem('connected_wallet_type') : null;
+
+  // If user selected Local Operator Keypair on login, use it directly without triggering MetaMask
+  if (chosenType === 'Local Keypair (secp256k1)') {
+    const localWallet = getOrCreateLocalWallet();
+    return {
+      type: 'Local Keypair (secp256k1)',
+      address: localWallet.address,
+      signer: localWallet,
+    };
+  }
+
   if (typeof window !== 'undefined' && window.ethereum) {
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);

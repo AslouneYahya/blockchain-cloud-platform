@@ -296,9 +296,40 @@ spec:
 
 	o.manifestYAML[payload.Name] = yamlManifest
 
-	// Pick target Raspberry Pi worker node based on load
-	piNodes := []string{"pi-node-01 (Master)", "pi-node-02 (Worker)", "pi-node-03 (Worker)"}
-	assignedNode := piNodes[rand.Intn(len(piNodes))]
+	// Pick target Raspberry Pi worker node from live cluster
+	assignedNode := "pi-node-01"
+	if o.isLiveK8s && o.client != nil {
+		nodeList, err := o.client.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+		if err == nil && len(nodeList.Items) > 0 {
+			var workerNames []string
+			for _, n := range nodeList.Items {
+				if _, isMaster := n.Labels["node-role.kubernetes.io/control-plane"]; !isMaster {
+					// Check if node is Ready
+					isReady := false
+					for _, c := range n.Status.Conditions {
+						if c.Type == corev1.NodeReady && c.Status == corev1.ConditionTrue {
+							isReady = true
+							break
+						}
+					}
+					if isReady {
+						workerNames = append(workerNames, n.Name)
+					}
+				}
+			}
+			if len(workerNames) > 0 {
+				assignedNode = workerNames[rand.Intn(len(workerNames))]
+			} else {
+				assignedNode = nodeList.Items[0].Name
+			}
+		}
+	}
+
+	// Schedule directly on the target physical node
+	if depSpec.Spec.Template.Spec.NodeSelector == nil {
+		depSpec.Spec.Template.Spec.NodeSelector = make(map[string]string)
+	}
+	depSpec.Spec.Template.Spec.NodeSelector["kubernetes.io/hostname"] = assignedNode
 
 	status := &types.K3sDeploymentStatus{
 		DeploymentID:  payload.Name,
@@ -368,10 +399,41 @@ func (o *Orchestrator) TerminateDeployment(ctx context.Context, name string) err
 	return nil
 }
 
-// GetDeployments returns all deployments
+// GetDeployments returns all deployments and syncs their status with live K3s
 func (o *Orchestrator) GetDeployments() []*types.K3sDeploymentStatus {
-	o.mu.RLock()
-	defer o.mu.RUnlock()
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
+	if o.isLiveK8s && o.client != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		for name, dep := range o.deployments {
+			if dep.Phase == "Terminated" {
+				continue
+			}
+			pods, err := o.client.CoreV1().Pods(o.namespace).List(ctx, metav1.ListOptions{
+				LabelSelector: fmt.Sprintf("app=%s", name),
+			})
+			if err == nil && len(pods.Items) > 0 {
+				pod := pods.Items[0]
+				dep.Phase = string(pod.Status.Phase)
+				if pod.Status.PodIP != "" {
+					dep.InternalIP = pod.Status.PodIP
+				}
+				if pod.Spec.NodeName != "" {
+					dep.NodeAssigned = pod.Spec.NodeName
+				}
+				var readyCount int32 = 0
+				for _, c := range pod.Status.ContainerStatuses {
+					if c.Ready {
+						readyCount++
+					}
+				}
+				dep.ReadyReplicas = readyCount
+			}
+		}
+	}
 
 	var result []*types.K3sDeploymentStatus
 	for _, d := range o.deployments {
