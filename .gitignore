@@ -28,3 +28,11 @@ frontend/dist/
 .idea/
 .vscode/
 *.iml
+
+# LaTeX auxiliary files
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot

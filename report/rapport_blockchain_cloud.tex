@@ -1,0 +1,820 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{textcomp}
+\usepackage[french]{babel}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{titlesec}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage[table,dvipsnames]{xcolor}
+\makeatletter
+\let\insert@pcolumn\insert@column
+\makeatother
+\usepackage{fancyhdr}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{url}
+\usepackage{setspace}
+\usepackage{amsmath,amssymb}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning,calc,fit,backgrounds}
+\usepackage{hyperref}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=NavyBlue,
+    filecolor=magenta,      
+    urlcolor=NavyBlue,
+    citecolor=NavyBlue,
+    pdfpagemode=FullScreen,
+}
+
+\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+\setlength{\headheight}{15pt}
+\setstretch{1.25}
+
+% Palette de couleurs professionnelle INPT (conforme au template de référence)
+\definecolor{primary}{RGB}{0, 75, 160}
+\definecolor{secondary}{RGB}{240, 245, 255}
+\definecolor{tertiary}{RGB}{34, 139, 34}
+\definecolor{accentorange}{RGB}{220, 100, 0}
+\definecolor{tableheader}{RGB}{220, 235, 252}
+\definecolor{riskred}{RGB}{255, 210, 210}
+\definecolor{riskyellow}{RGB}{255, 250, 205}
+\definecolor{riskgreen}{RGB}{220, 250, 220}
+\definecolor{codegray}{RGB}{245, 245, 247}
+\definecolor{codeborder}{RGB}{200, 205, 215}
+
+% Formatage des titres de sections
+\titleformat{\section}{\normalfont\Large\bfseries\color{primary}}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalfont\large\bfseries\color{primary}}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\normalfont\normalsize\bfseries\color{primary}}{\thesubsubsection}{1em}{}
+
+% Styles des boîtes tcolorbox
+\newtcolorbox{calloutbox}[1][]{
+    enhanced,
+    colback=secondary,
+    colframe=primary,
+    arc=3mm,
+    boxrule=1mm,
+    fonttitle=\bfseries\color{white},
+    coltitle=white,
+    title=#1,
+    left=4mm, right=4mm, top=3mm, bottom=3mm
+}
+
+\newtcolorbox{blockchainbox}[1][]{
+    enhanced,
+    colback=primary!5!white,
+    colframe=primary,
+    arc=2mm,
+    boxrule=0.8mm,
+    left=6mm, right=4mm, top=3mm, bottom=3mm,
+    #1
+}
+
+\newtcolorbox{alertwarning}[1][]{
+    enhanced,
+    colback=riskred!30,
+    colframe=accentorange!90!black,
+    arc=2mm,
+    boxrule=0.8mm,
+    left=5mm, right=4mm, top=3mm, bottom=3mm,
+    #1
+}
+
+% Configuration Listings pour code source et commandes
+\lstdefinelanguage{json}{
+    basicstyle=\ttfamily\footnotesize,
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{codegray},
+    rulecolor=\color{codeborder},
+    stringstyle=\color{accentorange},
+    commentstyle=\color{tertiary}\textit,
+    morestring=[b]",
+    morestring=[d]'
+}
+
+\lstdefinelanguage{golang}{
+    keywords={package, import, func, return, if, else, var, const, type, struct, interface, range, for},
+    keywordstyle=\color{primary}\bfseries,
+    ndkeywords={string, int, int64, float64, bool, byte, error},
+    ndkeywordstyle=\color{tertiary}\bfseries,
+    identifierstyle=\color{black},
+    sensitive=true,
+    comment=[l]{//},
+    morecomment=[s]{/*}{*/},
+    commentstyle=\color{tertiary}\textit,
+    stringstyle=\color{accentorange},
+    morestring=[b]",
+    morestring=[b]'
+}
+
+\lstdefinestyle{codeblock}{
+    backgroundcolor=\color{codegray},
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    frame=single,
+    rulecolor=\color{codeborder},
+    keywordstyle=\color{primary}\bfseries,
+    commentstyle=\color{tertiary}\textit,
+    stringstyle=\color{accentorange},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    numbersep=7pt,
+    tabsize=2,
+    showstringspaces=false
+}
+\lstset{style=codeblock}
+
+% En-têtes et pieds de page
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small \textcolor{primary}{\textbf{INPT -- BlockChain \& Smart Contract : Plateforme Cloud ChainOps}}}
+\fancyhead[R]{\small \textcolor{gray}{2026/2027}}
+\fancyfoot[L]{\small \textcolor{gray}{Filière SESNUM (INE3) -- Cluster Raspberry Pi \& K3s}}
+\fancyfoot[R]{\small \textbf{Page \thepage}}
+\renewcommand{\headrulewidth}{0.6pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+\begin{document}
+
+% ==============================================================================
+% PAGE DE GARDE INSTITUTIONNELLE INPT
+% ==============================================================================
+\begin{titlepage}
+\centering
+
+\begin{tcolorbox}[colframe=primary, colback=primary, width=\textwidth, boxrule=0mm, sharp corners, height=0.35cm]
+\end{tcolorbox}
+
+\vspace{0.25cm}
+
+\includegraphics[width=0.22\textwidth]{inpt_logo.png}\\[0.25cm]
+
+\begin{tcolorbox}[colframe=primary, colback=secondary, coltitle=primary, sharp corners=southwest, width=\textwidth, boxrule=1.2mm, top=0.45cm, bottom=0.45cm]
+\centering
+\vspace{0.15cm}
+{\LARGE \textbf{\textcolor{primary}{RAPPORT DE PROJET ACADÉMIQUE}}}\\[0.35cm]
+{\Large \textbf{Plateforme Cloud Décentralisée Pilotée par Registre Blockchain (ChainOps)}}\\[0.3cm]
+{\large \textit{Orchestration d'Infrastructure Immuable sur Cluster Physique Raspberry Pi avec K3s, Consensus Raft et immudb}}
+\vspace{0.15cm}
+\end{tcolorbox}
+
+\vspace{0.35cm}
+
+\begin{tcolorbox}[colframe=tertiary, colback=tertiary!10, width=0.94\textwidth, boxrule=0.6mm, sharp corners, left=0.6cm, right=0.6cm, top=0.3cm, bottom=0.3cm]
+\centering
+\textbf{\large Module : BlockChain \& Smart Contract}\\[0.15cm]
+\textbf{\normalsize Année Universitaire 2026/2027}\\[0.25cm]
+\textbf{\normalsize Réalisé par :}\\[0.15cm]
+{\normalsize \textbf{\textcolor{primary}{SALIOUI Ilyes \qquad SBAI Ahmed Taha}}}\\[0.15cm]
+{\normalsize \textbf{\textcolor{primary}{SEBAI EL FASSI Abdelmonim \qquad ASLOUNE Yahya}}}\\[0.3cm]
+\textbf{\normalsize Sous la direction et l'encadrement de :}\\[0.15cm]
+{\large \textbf{Mme Meryeme AYACHE}}\\[0.1cm]
+\textit{\small Professeur à l'Institut National des Postes et Télécommunications (INPT)}
+\end{tcolorbox}
+
+\vspace{0.35cm}
+
+\begin{tcolorbox}[colframe=primary, colback=primary!10, sharp corners=northwest, width=0.90\textwidth, boxrule=0.8mm, top=0.25cm, bottom=0.25cm]
+\centering
+\textbf{\normalsize Filière : Systèmes Embarqués et Services Numériques (SESNUM -- INE3)}\\[0.1cm]
+{\normalsize \textbf{Institut National des Postes et Télécommunications -- Rabat}}
+\end{tcolorbox}
+
+\vfill
+
+{\small \textit{« L'infrastructure cloud moderne ne doit plus reposer sur la confiance aveugle envers un administrateur central, mais sur des preuves cryptographiques immuables et un consensus décentralisé tolérant aux pannes. »}}\\[0.35cm]
+
+\begin{tcolorbox}[colframe=primary, colback=primary, width=\textwidth, boxrule=0mm, sharp corners, height=0.35cm]
+\end{tcolorbox}
+
+\end{titlepage}
+
+\newpage
+\pagenumbering{roman}
+\tableofcontents
+\newpage
+\listoffigures
+\listoftables
+\newpage
+\pagenumbering{arabic}
+
+% ==============================================================================
+% RÉSUMÉ EXÉCUTIF & ABSTRACT
+% ==============================================================================
+\section*{Résumé Exécutif}
+\addcontentsline{toc}{section}{Résumé Exécutif}
+
+Le paradigme dominant du Cloud Computing contemporain (incarné par les hyper-scalers tels qu'Amazon Web Services, Microsoft Azure et Google Cloud Platform) repose sur une architecture de confiance hautement centralisée. Dans ces environnements, les opérations critiques de provisionnement d'infrastructure, de contrôle d'accès et d'ordonnancement de conteneurs sont consignées dans des bases de données relationnelles traditionnelles et validées par des jetons de session ou des clés d'API statiques. Cette centralisation engendre un point de défaillance unique (\textit{Single Point of Failure}) et expose l'infrastructure aux altérations silencieuses de configuration par des administrateurs internes malveillants ou des compromissions de privilèges root.
+
+Ce projet, réalisé dans le cadre du module \textbf{BlockChain \& Smart Contract} de l'INPT sous la direction de \textbf{Mme Meryeme AYACHE}, introduit **ChainOps** : une plateforme d'orchestration cloud décentralisée nativement intégrée sur un cluster physique de 3 nœuds **Raspberry Pi 4 (ARM64)**. Dans cette architecture, toute demande de déploiement de conteneur est traitée exactement comme une transaction financière immuable soumise à un pipeline cryptographique en 5 étapes :
+\begin{enumerate}[leftmargin=1.2cm]
+    \item \textbf{Signature cryptographique cliente} via des paires de clés asymétriques $secp256k1$ (MetaMask ou clés locales d'opérateur) sans transmission de mot de passe ;
+    \item \textbf{Smart Contract Gatekeeper en Go} appliquant des règles d'admission déterministes et validant les quotas physiques de RAM et de CPU pour prévenir tout épuisement de ressources (\textit{Out-Of-Memory}) ;
+    \item \textbf{Moteur de consensus distribué Raft} imposant un quorum physique majoritaire ($N/2 + 1$) entre les trois nœuds Raspberry Pi avant toute validation ;
+    \item \textbf{Registre immuable immudb} matérialisant un chaînage cryptographique par hachage SHA-256 et calculant un arbre de Merkle pour une détection d'altération en temps réel ;
+    \item \textbf{Ordonnancement physique K3s} programmant dynamiquement les pods via les bibliothèques officielles Kubernetes \texttt{client-go} sur le matériel cible.
+\end{enumerate}
+
+L'accès externe et l'interconnexion sécurisée entre nœuds physiques sont intégralement opérés au moyen de tunnels **Cloudflare Zero Trust Layer 4 TCP**, éliminant rigoureusement toute dépendance envers des adresses IP locales statiques ou des ports publics exposés.
+
+\vspace{0.4cm}
+\noindent\rule{\textwidth}{0.4pt}
+\vspace{0.2cm}
+
+\section*{Abstract}
+\addcontentsline{toc}{section}{Abstract}
+
+Contemporary cloud orchestration infrastructures traditionally depend on centralized authority, relational databases, and static access control mechanisms, creating severe vulnerabilities against insider threats, configuration tampering, and state divergence. This report presents **ChainOps**, a decentralized, blockchain-driven cloud orchestration engine deployed on a physical 3-node **Raspberry Pi 4 ARM64** bare-metal cluster. 
+
+By mapping container lifecycles to state machine transactions, ChainOps enforces client-side $secp256k1$ cryptographic signatures, Go-based deterministic smart contract resource gatekeeping, a distributed 3-node Raft consensus quorum, and immutable cryptographic persistence via **immudb** Merkle trees. Approved workloads are scheduled on live physical worker nodes through official Kubernetes \texttt{client-go} drivers. Public ingress and worker-to-master control plane traffic are tunneled through Cloudflare Zero Trust Layer 4 TCP bridges, achieving true zero-trust networking with zero public IP and zero local IP dependencies. Comprehensive experimental validations demonstrate sub-second consensus, zero-downtime persistence, and real-time mathematical tamper detection.
+
+\newpage
+
+% ==============================================================================
+% SECTION 1 : INTRODUCTION, CONTEXTE ET PROBLÉMATIQUE
+% ==============================================================================
+\section{Introduction, Contexte et Problématique}
+
+\subsection{Contexte Technologique : Les Limites du Cloud Centralisé}
+
+L'essor fulgurant des microservices et des orchestrateurs de conteneurs tels que Kubernetes a standardisé la gestion applicative à grande échelle. Cependant, la quasi-totalité des architectures d'infrastructure actuelles s'appuie sur un postulat de sécurité hérité des architectures web traditionnelles : la centralisation de l'autorité et la confiance implicite envers la base de données d'état.
+
+Dans un cluster Kubernetes standard, le magasin de données central \texttt{etcd} conserve l'intégralité de l'état désiré du cluster. Bien qu'\texttt{etcd} intègre un protocole de consensus Raft pour synchroniser ses membres, il ne dispose d'aucune garantie cryptographique d'immuabilité historique :
+\begin{itemize}[leftmargin=1.2cm]
+    \item Un administrateur système disposant d'un accès privilégié à la machine hôte peut modifier directement les clés stockées dans le moteur binaire sans déclencher d'alerte cryptographique ;
+    \item Les journaux d'audit (\textit{audit logs}) sont généralement exportés vers des serveurs de logs externes (ELK, Splunk, Datadog) qui demeurent eux-mêmes modifiables ou purgeables par des comptes super-utilisateurs ;
+    \item Les requêtes de déploiement sont authentifiées via des jetons JWT (\textit{Bearer Tokens}) ou des certificats X.509 éphémères qui ne lient pas mathématiquement l'identité du signataire à la charge utile (\textit{payload}) de la ressource provisionnée.
+\end{itemize}
+
+\subsection{Le Paradigme de l'« Infrastructure as a Ledger »}
+
+Pour résoudre ces vulnérabilités structurelles, notre projet explore une convergence entre les protocoles de registres distribués (\textit{Distributed Ledger Technology -- DLT}), les smart contracts et l'orchestration bare-metal. 
+
+\begin{calloutbox}[Principe Fondateur : L'Infrastructure as a Ledger]
+Dans ChainOps, une opération d'infrastructure (déploiement d'un pod, allocation de mémoire vive, modification de répliques ou résiliation de service) n'est jamais considérée comme un simple appel d'API impératif. Elle est formulée comme une \textbf{transaction d'état cryptographique}. Elle doit être signée asymétriquement par l'opérateur, soumise à l'évaluation déterministe d'un contrat intelligent de quota, approuvée par le quorum majoritaire des nœuds physiques du réseau, puis scellée dans un registre dont l'historique est vérifiable par un arbre de Merkle.
+\end{calloutbox}
+
+\subsection{Objectifs du Projet et Cahier des Charges Académique}
+
+Dans le cadre du module \textbf{BlockChain \& Smart Contract}, l'objectif assigning à notre équipe consistait à concevoir, développer et déployer en conditions réelles une architecture complète répondant aux exigences suivantes :
+\begin{enumerate}[leftmargin=1.2cm]
+    \item \textbf{Déploiement sur Matériel Physique Réel} : Mettre en œuvre un cluster opérationnel composé de trois Raspberry Pi 4 ARM64 physiques interconnectés en réseau local Gigabit ;
+    \item \textbf{Zéro Dépendance aux Adresses IP Locales} : Permettre aux nœuds travailleurs (\textit{Workers}) et aux clients web de communiquer avec le plan de contrôle exclusivement via un nom de domaine public sécurisé par Cloudflare Zero Trust ;
+    \item \textbf{Smart Contract Déterministe} : Implémenter un moteur de règles en Go capable de vérifier mathématiquement les signatures $secp256k1$ (\texttt{ecrecover}) et d'interdire toute surallocation de mémoire physique (protection anti-OOM) ;
+    \item \textbf{Consensus Distribué Raft} : Mettre en place un vote par quorum à 3 nœuds physiques avec élection de leader et détection des pannes ;
+    \item \textbf{Registre Cryptographique Immuable} : Intégrer la base de données immudb afin de calculer un arbre de Merkle et un chaînage de blocs SHA-256 garantissant la détection immédiate de toute falsification de données ;
+    \item \textbf{Synchronisation Réelle Kubernetes} : Traduire chaque transaction approuvée en manifests officiels Kubernetes (\texttt{client-go}) et restituer la télémétrie matérielle réelle sans aucune donnée simulée.
+\end{enumerate}
+
+\newpage
+
+% ==============================================================================
+% SECTION 2 : ARCHITECTURE MATÉRIELLE ET TOPOLOGIE RÉSEAU ZERO-TRUST
+% ==============================================================================
+\section{Architecture Matérielle et Topologie Réseau Zero-Trust}
+
+\subsection{Spécifications du Cluster Physique Raspberry Pi 4}
+
+La plateforme repose sur une grappe de 3 ordinateurs monocartes Raspberry Pi 4 Modèle B bare-metal. Contrairement aux environnements de virtualisation ou aux conteneurs imbriqués, cette configuration confronte directement le moteur logiciel aux contraintes physiques : latence réseau, architecture matérielle ARM64, restrictions thermiques et gestion stricte de la mémoire vive.
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{|l|l|l|l|p{4cm}|}
+\hline
+\rowcolor{tableheader}
+\textbf{Nom du Nœud} & \textbf{Rôle Cluster} & \textbf{Architecture} & \textbf{IP Locale LAN} & \textbf{Spécifications Matérielles} \\
+\hline
+\textbf{pi-node-01} & Master (Leader Raft) & ARM64 (BCM2711) & 192.168.1.212 & 4 Cores @ 1.5 GHz, 3\,794 Mo RAM, Debian 11 \\
+\hline
+\textbf{pi-worker-1-afe458a1} & Worker 1 (Follower) & ARM64 (BCM2711) & 192.168.1.213 & 4 Cores @ 1.5 GHz, 3\,794 Mo RAM, Debian 11 \\
+\hline
+\textbf{pi-worker-2-d50675de} & Worker 2 (Follower) & ARM64 (BCM2711) & 192.168.1.214 & 4 Cores @ 1.5 GHz, 3\,794 Mo RAM, Debian 11 \\
+\hline
+\rowcolor{secondary}
+\textbf{Total Cluster} & \textbf{Haute Disponibilité} & \textbf{ARM64 (12 Cores)} & \textbf{Réseau Découplé} & \textbf{11\,382 Mo RAM Totale} \\
+\hline
+\end{tabular}
+\caption{Spécifications du cluster physique bare-metal Raspberry Pi 4}
+\label{tab:hardware_specs}
+\end{table}
+
+\subsection{Topologie Réseau Globale et Routage Zero Trust}
+
+La figure~\ref{fig:network_arch} illustre la topologie réseau de la plateforme. Aucun port de la passerelle domestique n'est ouvert vers l'extérieur (pas de redirection NAT ni de DMZ).
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=1.5cm, auto,
+    block/.style={rectangle, draw=primary, fill=secondary, text centered, rounded corners=3pt, minimum height=1cm, text width=4.5cm, font=\small},
+    edgeblock/.style={rectangle, draw=accentorange, fill=accentorange!10, text centered, rounded corners=3pt, minimum height=1cm, text width=6cm, font=\small},
+    line/.style={draw=primary, -latex', thick}]
+
+    \node [block] (client) {\textbf{Client Web3 / Navigateur}\\\small (MetaMask / Local $secp256k1$)};
+    \node [edgeblock, below of=client, node distance=2.2cm] (cf) {\textbf{Cloudflare Zero Trust Edge Network}\\\small \texttt{bc.aslouneyahya.com} (HTTPS Port 443)\\\small \texttt{k3s.aslouneyahya.com} (TCP Port 6443)};
+    
+    \node [block, below of=cf, node distance=2.4cm] (master) {\textbf{pi-node-01 (Master Pi)}\\\small Démon Go ChainOps (:8080)\\\small Registre immudb (:3322)\\\small Serveur K3s Control Plane (:6443)};
+    
+    \node [block, below left of=master, node distance=4cm, xshift=-1cm] (w1) {\textbf{pi-worker-1-afe458a1}\\\small K3s Agent \& containerd\\\small Pont TCP tunnel local :6443};
+    \node [block, below right of=master, node distance=4cm, xshift=1cm] (w2) {\textbf{pi-worker-2-d50675de}\\\small K3s Agent \& containerd\\\small Pont TCP tunnel local :6443};
+
+    \path [line] (client) -- node[right]{\footnotesize Requêtes signées EIP-191} (cf);
+    \path [line] (cf) -- node[right]{\footnotesize Tunnel Chiffré cloudflared} (master);
+    \path [line, dashed] (cf) -| node[above, sloped]{\footnotesize TCP Stream mTLS} (w1);
+    \path [line, dashed] (cf) -| node[above, sloped]{\footnotesize TCP Stream mTLS} (w2);
+    \path [line] (master) -- node[above, sloped]{\footnotesize Ordonnancement Pods} (w1);
+    \path [line] (master) -- node[above, sloped]{\footnotesize Ordonnancement Pods} (w2);
+\end{tikzpicture}
+\caption{Architecture réseau Zero Trust avec routage Layer 4 TCP public}
+\label{fig:network_arch}
+\end{figure}
+
+\subsection{Résolution du Défi d'Ingress : Du Proxy HTTPS Layer 7 au Tunnel TCP Layer 4}
+
+L'un des défis d'ingénierie majeurs rencontrés lors du déploiement a concerné l'interconnexion des nœuds ouvriers (\textit{Workers}) avec le serveur maître K3s à travers le réseau public.
+
+\begin{alertwarning}
+\textbf{Analyse d'Échec Initial (Proxy HTTPS Layer 7) :}
+Initialement, le nom de domaine \texttt{k3s.aslouneyahya.com} avait été configuré comme un service HTTP/HTTPS standard dans le tunnel Cloudflare. Ce mode de fonctionnement s'est traduit par une boucle d'erreurs fatale sur les nœuds ouvriers :
+\begin{lstlisting}
+Failed to connect to https://127.0.0.1:6444/cacerts: 403 Forbidden
+\end{lstlisting}
+\textbf{Cause racine :} Les proxies Layer 7 terminent la session TLS au niveau des serveurs Edge de Cloudflare. Or, Kubernetes utilise une authentification mutuelle forte par certificats (\textbf{mTLS}) entre l'agent (\texttt{k3s-agent}) et le serveur d'API (\texttt{k3s-server}). En terminant le TLS et en modifiant les en-têtes \texttt{Host}, Cloudflare supprimait les certificats clients et provoquait le rejet immédiat de la négociation cryptographique par le serveur d'API.
+\end{alertwarning}
+
+\begin{calloutbox}[Solution Implémentée : Le Pont Tunnel Layer 4 TCP]
+Pour préserver l'intégrité de la liaison mTLS sans exposer d'adresse IP publique sur le Master, nous avons configuré le tunnel Cloudflare en mode **Layer 4 TCP brut** :
+\begin{itemize}
+    \item Configuration Cloudflare Edge : Redirection du flux \texttt{k3s.aslouneyahya.com} directement en \texttt{tcp://127.0.0.1:6443} ;
+    \item Sur chaque nœud travailleur, un service d'arrière-plan \texttt{k3s-tcp-tunnel.service} exécute :
+    \begin{lstlisting}[language=bash]
+cloudflared access tcp --hostname k3s.aslouneyahya.com --url 127.0.0.1:6443
+    \end{lstlisting}
+    \item L'agent K3s se connecte ainsi à son port local \texttt{127.0.0.1:6443}, et les paquets TCP transportant la négociation mTLS traversent l'infrastructure Cloudflare de manière totalement transparente sans aucune terminaison TLS intermédiaire.
+\end{itemize}
+\end{calloutbox}
+
+\newpage
+
+% ==============================================================================
+% SECTION 3 : LE MOTEUR BLOCKCHAIN EN 5 ÉTAPES
+% ==============================================================================
+\section{Le Moteur Blockchain en 5 Étapes (Fonctionnement Interne)}
+
+Le cycle de vie de toute ressource provisionnée sur ChainOps obéit à un pipeline strict découpé en cinq phases séquentielles indépendantes, synthétisé par la figure~\ref{fig:pipeline_seq}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=1.3cm, auto,
+    stepbox/.style={rectangle, draw=primary, fill=secondary, text centered, rounded corners=4pt, minimum height=1.1cm, text width=13cm, font=\small},
+    arrow/.style={draw=primary, -latex', ultra thick}]
+
+    \node [stepbox] (s1) {\textbf{Étape 1 : Cryptographie Côté Client (React + ethers.js)}\\Signature $secp256k1$ canonique du payload JSON (MetaMask ou Clé Privée Locale)};
+    \node [stepbox, below of=s1, node distance=1.7cm] (s2) {\textbf{Étape 2 : Smart Contract Gatekeeper (Démon Go)}\\Récupération d'adresse via \texttt{ecrecover} et validation des quotas stricts de RAM};
+    \node [stepbox, below of=s2, node distance=1.7cm] (s3) {\textbf{Étape 3 : Consensus Distribué Raft (Quorum 3 Nœuds)}\\Diffusion de la proposition et accord majoritaire ($N/2 + 1 = 2$ Pis physiques requis)};
+    \node [stepbox, below of=s3, node distance=1.7cm] (s4) {\textbf{Étape 4 : Registre Immuable immudb (Merkle Hash Chain)}\\Scellement du bloc SHA-256 et recalcul de la racine cryptographique de Merkle};
+    \node [stepbox, below of=s4, node distance=1.7cm] (s5) {\textbf{Étape 5 : Ordonnancement Physique K3s (client-go)}\\Génération dynamique des manifests et programmation du pod sur un worker};
+
+    \path [arrow] (s1) -- (s2);
+    \path [arrow] (s2) -- (s3);
+    \path [arrow] (s3) -- (s4);
+    \path [arrow] (s4) -- (s5);
+\end{tikzpicture}
+\caption{Le pipeline cryptographique en 5 étapes pour chaque transaction d'infrastructure}
+\label{fig:pipeline_seq}
+\end{figure}
+
+\subsection{Étape 1 : Cryptographie Côté Client et Signatures Asymétriques}
+
+Lorsqu'un développeur souhaite déployer une application, le frontend standardise les paramètres sous forme d'une chaîne JSON canonique sérialisée sans ambiguïté :
+\begin{lstlisting}[language=json]
+{
+  "name": "web-service",
+  "image": "python:3.11-alpine",
+  "ramMb": 512,
+  "cpu": 1,
+  "port": 8000,
+  "replicas": 1,
+  "timestamp": 1794182400,
+  "nonce": "a4f89b1c7e"
+}
+\end{lstlisting}
+
+Ce payload est condensé au moyen de l'algorithme Keccak-256 avec le préfixe standard Ethereum EIP-191 :
+\begin{equation}
+m = \text{Keccak256}(\text{"\textbackslash x19Ethereum Signed Message:\textbackslash n"} + \text{len}(payload) + payload)
+\end{equation}
+
+La signature résultante $\sigma = (r, s, v)$ est générée au moyen de la courbe elliptique $secp256k1$. Le frontend prend en charge deux modes d'authentification :
+\begin{itemize}
+    \item **Extension MetaMask** : Signature matérielle interactive dans le navigateur ;
+    \item **Paire de clés locale d'opérateur** : Génération d'une clé privée éphémère ou persistante stockée en \texttt{localStorage}, permettant de signer les requêtes en moins d'une milliseconde sans dépendre d'extensions externes.
+\end{itemize}
+
+\subsection{Étape 2 : Le Smart Contract Gatekeeper en Go}
+
+Dès réception de la requête sur l'endpoint \texttt{POST /api/deployments}, le démon Go exécute le composant \texttt{SmartContractGatekeeper} situé dans \texttt{pkg/contract/gatekeeper.go} :
+
+\begin{enumerate}[leftmargin=1.2cm]
+    \item \textbf{Vérification d'Identité par \texttt{ecrecover}} : Le démon calcule la clé publique de l'expéditeur via la primitive cryptographique \texttt{crypto.SigToPub} :
+    \begin{lstlisting}[language=golang]
+pubKey, err := crypto.SigToPub(messageHash, signatureBytes)
+recoveredAddress := crypto.PubkeyToAddress(*pubKey).Hex()
+    \end{lstlisting}
+    Si l'adresse dérivée mathématiquement ne correspond pas à l'adresse fournie ou si la signature a été altérée d'un seul bit, la requête est rejetée avec une erreur \texttt{401 Unauthorized}.
+    \item \textbf{Contrôle Déterministe des Quotas (Anti-OOM)} : Le contrat intelligent applique la règle de conservation des ressources :
+    \begin{equation}
+    \text{RAM}_{\text{allouée}} + \text{RAM}_{\text{demandée}} \le \text{RAM}_{\text{totale\_cluster}} \quad (11\,382 \text{ Mo})
+    \end{equation}
+    Si la condition est violée, le contrat rejette la transaction (\texttt{403 Forbidden}), protégeant ainsi le cluster physique contre les blocages mémoire et les arrêts brutaux du noyau Linux.
+\end{enumerate}
+
+\subsection{Étape 3 : Moteur de Consensus Distribué Raft}
+
+Une proposition validée par le contrat intelligent est soumise au moteur de consensus distribué Raft (\texttt{pkg/consensus/raft.go}). 
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{|l|l|p{8cm}|}
+\hline
+\rowcolor{tableheader}
+\textbf{Paramètre Raft} & \textbf{Valeur de Production} & \textbf{Justification Technique} \\
+\hline
+\textbf{Leader Actif} & \texttt{pi-node-01} & Nœud Master hébergeant le plan de contrôle K3s et immudb \\
+\hline
+\textbf{Quorum Majoritaire} & $\lfloor N/2 \rfloor + 1 = 2$ nœuds & Garantit la tolérance à la perte d'un nœud sans scission \\
+\hline
+\textbf{Timer de Heartbeat} & 150 ms & Détection rapide des partitions réseau entre Raspberry Pis \\
+\hline
+\textbf{Délai d'Élection} & 300 ms -- 500 ms & Évite les votes divisés (\textit{Split Votes}) par gigue aléatoire \\
+\hline
+\end{tabular}
+\caption{Paramètres opérationnels du protocole de consensus Raft}
+\label{tab:raft_params}
+\end{table}
+
+Chaque nœud votant génère un vote signé cryptographiquement. Dès que le leader recueille 2 votes positifs sur 3 (ou 3 sur 3 en conditions nominales), il émet un reçu de consensus formel (\texttt{ConsensusReceipt}) prouvant mathématiquement l'accord du cluster.
+
+\subsection{Étape 4 : Registre Immuable immudb et Arbre de Merkle}
+
+Le reçu de consensus et les métadonnées de déploiement sont persistés dans **immudb**, une base de données de registre immuable à hautes performances développée en Go.
+
+Chaque entrée constitue une transaction numérotée séquentiellement ($n$), liée au bloc précédent par une fonction de hachage à sens unique :
+\begin{equation}
+\text{BlockHash}_n = \text{SHA256}(\text{BlockHash}_{n-1} \,\|\, \text{TxID}_n \,\|\, \text{Timestamp} \,\|\, \text{SignerAddress} \,\|\, \text{PayloadHash})
+\end{equation}
+
+Simultanément, immudb recalcule la racine de l'arbre de Merkle englobant l'intégralité des transactions du cluster. Cette empreinte globale est exposée en temps réel sur le tableau de bord de la plateforme sous la variable \texttt{Merkle Root} (ex. \texttt{0xedb3e527...4d01d0}).
+
+\subsection{Étape 5 : Ordonnancement Physique K3s via client-go}
+
+Une fois la transaction scellée dans immudb, l'orchestrateur K3s (\texttt{pkg/k3s/orchestrator.go}) intervient pour traduire la charge utile en ressources Kubernetes natives :
+\begin{itemize}[leftmargin=1.2cm]
+    \item \textbf{Génération de Déploiement} : Utilisation de la bibliothèque officielle \texttt{k8s.io/client-go} pour créer un objet \texttt{apps/v1 Deployment} et un \texttt{v1 Service} ;
+    \item \textbf{Affinité Matérielle} : Injection systématique d'une contrainte \texttt{nodeAffinity} (\texttt{kubernetes.io/hostname}) pour contraindre l'exécution du pod sur un nœud travailleur physique (\texttt{pi-worker-1} ou \texttt{pi-worker-2}) et décharger le Master ;
+    \item \textbf{Point d'Entrée Anti-CrashLoopBackOff} : Pour les images interactives dépourvues de terminal TTY (ex. \texttt{python:3.11-alpine}), l'orchestrateur injecte un serveur HTTP d'arrière-plan autonome (\texttt{python3 -m http.server <port>}), garantissant un statut immédiat \texttt{Running (1/1 Ready)}.
+\end{itemize}
+
+\newpage
+
+% ==============================================================================
+% SECTION 4 : SÉCURITÉ CRYPTOGRAPHIQUE ET DÉTECTION D'ALTÉRATION
+% ==============================================================================
+\section{Sécurité Cryptographique et Détection d'Altération}
+
+\subsection{Formulation Mathématique du Chaînage d'État}
+
+La robustesse de ChainOps repose sur la propriété de résistance aux collisions de l'algorithme SHA-256. L'état du registre forme une chaîne cryptographique où le bloc initial (Genesis) est défini par convention :
+\begin{equation}
+H_0 = \text{0x0000000000000000000000000000000000000000000000000000000000000000}
+\end{equation}
+
+Pour toute transaction ultérieure d'indice $k \ge 1$, le condensat d'en-tête de bloc est calculé par :
+\begin{equation}
+H_k = \mathcal{H}\Big(H_{k-1} \,\|\, k \,\|\, t_k \,\|\, \text{Addr}_k \,\|\, \mathcal{H}(\text{Payload}_k)\Big)
+\end{equation}
+où $\mathcal{H}$ désigne la fonction SHA-256 et $\|$ l'opérateur de concaténation binaire.
+
+\subsection{Vérification d'Audit de Bout en Bout}
+
+L'endpoint public \texttt{GET /api/ledger/audit} permet à n'importe quel auditeur externe de vérifier l'intégrité intégrale de la plateforme sans nécessiter de privilèges administratifs. L'algorithme d'audit procède comme suit :
+\begin{enumerate}[leftmargin=1.2cm]
+    \item Extraction séquentielle de l'ensemble des blocs depuis $k = 1$ jusqu'à $N$ ;
+    \item Recalcul pas à pas de $H_k$ à partir du bloc précédent $H_{k-1}$ et des paramètres stockés ;
+    \item Comparaison du condensat recalculé avec la valeur scellée lors de l'enregistrement initial ;
+    \item Reconstruction de l'arbre de Merkle et vérification de la concordance de la racine calculée avec l'état racine courant.
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=1.2cm, auto,
+    decision/.style={diamond, draw=primary, fill=tableheader, text centered, inner sep=0pt, font=\footnotesize, aspect=2},
+    block/.style={rectangle, draw=primary, fill=secondary, text centered, rounded corners=3pt, minimum height=0.9cm, text width=5cm, font=\small},
+    error/.style={rectangle, draw=accentorange, fill=riskred, text centered, rounded corners=3pt, minimum height=0.9cm, text width=4.5cm, font=\small},
+    success/.style={rectangle, draw=tertiary, fill=riskgreen, text centered, rounded corners=3pt, minimum height=0.9cm, text width=4.5cm, font=\small},
+    line/.style={draw=primary, -latex', thick}]
+
+    \node [block] (start) {Requête d'Audit :\\\texttt{GET /api/ledger/audit}};
+    \node [decision, below of=start, node distance=1.8cm] (d1) {$H_{k} == \text{RecalculatedHash}$ ?};
+    \node [error, right of=d1, node distance=5.5cm] (tamper) {\textbf{Altération Détectée}\\\small Intégrité compromise};
+    \node [decision, below of=d1, node distance=2.2cm] (d2) {Tous blocs vérifiés ?};
+    \node [block, below of=d2, node distance=2.0cm] (next) {Bloc suivant $k \leftarrow k+1$};
+    \node [decision, left of=d2, node distance=4.5cm] (d3) {$\text{Root}_{\text{calc}} == \text{Root}_{\text{ledger}}$ ?};
+    \node [success, below of=d3, node distance=2.2cm] (ok) {\textbf{100\,\% Conforme}\\\small Chaîne intègre et certifiée};
+
+    \path [line] (start) -- (d1);
+    \path [line] (d1) -- node[above]{\footnotesize Non} (tamper);
+    \path [line] (d1) -- node[right]{\footnotesize Oui} (d2);
+    \path [line] (d2) -- node[right]{\footnotesize Non} (next);
+    \path [line] (next) |- (d1);
+    \path [line] (d2) -- node[above]{\footnotesize Oui} (d3);
+    \path [line] (d3) |- node[above]{\footnotesize Non} (tamper);
+    \path [line] (d3) -- node[right]{\footnotesize Oui} (ok);
+\end{tikzpicture}
+\caption{Algorithme de vérification cryptographique d'intégrité du registre}
+\label{fig:audit_flowchart}
+\end{figure}
+
+\subsection{Démonstration de Détection d'Attaque Malveillante}
+
+Pour valider empiriquement ce mécanisme face aux évaluateurs, un endpoint de simulation d'attaque a été intégré : \texttt{POST /api/ledger/simulate-tamper}. Cette méthode simule l'action d'un administrateur système corrompu qui accéderait directement au disque du Master Pi pour modifier subrepticement le nombre de répliques ou l'image d'un conteneur dans l'historique.
+
+Dès l'exécution de l'altération, la prochaine requête d'audit renvoie immédiatement une alerte d'intégrité :
+\begin{lstlisting}[language=json]
+{
+  "valid": false,
+  "brokenTxId": 2,
+  "reason": "Tamper detected: stored block hash does not match recalculated hash"
+}
+\end{lstlisting}
+La fraude est détectée instantanément, illustrant concrètement l'impossibilité de modifier silencieusement l'état de l'infrastructure.
+
+\newpage
+
+% ==============================================================================
+% SECTION 5 : RÉSULTATS EXPÉRIMENTAUX ET VISITE VISUELLE
+% ==============================================================================
+\section{Résultats Expérimentaux et Visite Visuelle}
+
+L'ensemble des expérimentations a été mené directement sur le cluster physique en production. Cette section analyse les dix vues représentatives documentant la validation opérationnelle complète du système.
+
+\subsection{Authentification Cryptographique et Interface de Connexion}
+
+La figure~\ref{fig:bc_login} présente l'interface d'accueil de la plateforme (\texttt{https://bc.aslouneyahya.com}).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.88\textwidth]{figures/bc_login.png}
+\caption{Portail d'authentification Web3 offrant le choix entre MetaMask et Clé Locale}
+\label{fig:bc_login}
+\end{figure}
+
+L'utilisateur dispose de deux modes de signature non-custodiaux :
+\begin{itemize}
+    \item **Connect Web3 Wallet (MetaMask)** : Sollicite l'extension du navigateur pour une signature sécurisée avec confirmation visuelle ;
+    \item **Local Operator Keypair** : Génère une paire de clés cryptographiques $secp256k1$ directement dans l'environnement d'exécution du navigateur, permettant des déploiements instantanés sans dépendance externe.
+\end{itemize}
+
+\subsection{Cycle de Déploiement en 5 Étapes et Quotas}
+
+La figure~\ref{fig:new_deployment_steps} illustre la fenêtre modale guidant l'opérateur tout au long du pipeline transactionnel en temps réel.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{figures/new_deployment_steps.png}
+\caption{Visualisation en direct des 5 étapes du pipeline lors d'un déploiement}
+\label{fig:new_deployment_steps}
+\end{figure}
+
+Chaque étape (Signature cliente $\rightarrow$ Smart Contract $\rightarrow$ Consensus Raft $\rightarrow$ Immudb $\rightarrow$ Ordonnancement K3s) change d'état dynamiquement avec horodatage certifié.
+
+\subsection{Exécution en Production et Télémétrie Matérielle}
+
+La figure~\ref{fig:test2_running} démontre l'état opérationnel du conteneur \texttt{test2} (\texttt{python:3.11-alpine}), provisionné physiquement sur le nœud ouvrier \texttt{pi-worker-1-afe458a1} avec l'adresse IP interne de pod \texttt{10.42.4.2}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.88\textwidth]{figures/test2_running.png}
+\caption{Conteneur \texttt{test2} en statut Running (1/1 Ready) sur le worker physique}
+\label{fig:test2_running}
+\end{figure}
+
+La figure~\ref{fig:test2_deployment} présente le volet d'inspection technique détaillant le manifest YAML généré à la volée par \texttt{client-go}, les métadonnées de transaction et les journaux d'exécution en continu.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.88\textwidth]{figures/test2_deployment.png}
+\caption{Manifest Kubernetes généré dynamiquement et flux de logs en continu}
+\label{fig:test2_deployment}
+\end{figure}
+
+\subsection{Télémétrie du Cluster et Consensus Raft}
+
+La figure~\ref{fig:nodes_consensus} présente le tableau de bord de supervision des nœuds matériels.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.88\textwidth]{figures/nodes_consensus.png}
+\caption{Télémétrie en temps réel des trois Raspberry Pis physiques et état du quorum Raft}
+\label{fig:nodes_consensus}
+\end{figure}
+
+Les trois cartes matérielles reflètent les caractéristiques physiques réelles :
+\begin{itemize}
+    \item **pi-node-01** (Leader Raft, IP \texttt{192.168.1.212}) : Consomme 1\,410 Mo de RAM (plan de contrôle K3s, démon Go, immudb) ;
+    \item **pi-worker-1-afe458a1** (Follower Raft, IP \texttt{192.168.1.213}) : Consomme 1\,427 Mo de RAM, reflétant la charge du pod applicatif \texttt{test2} (badge \texttt{test2} visible) ;
+    \item **pi-worker-2-d50675de** (Follower Raft, IP \texttt{192.168.1.214}) : Consomme 810 Mo de RAM en état nominal.
+\end{itemize}
+
+\subsection{Explorateur de Registre Blockchain et Racine de Merkle}
+
+La figure~\ref{fig:ledger} présente l'explorateur de blocs de la plateforme.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.88\textwidth]{figures/ledger.png}
+\caption{Explorateur de transactions immudb affichant les condensats SHA-256 et le quorum}
+\label{fig:ledger}
+\end{figure}
+
+Pour chaque transaction, l'interface affiche le hash de bloc SHA-256 (ex. \texttt{0x2b3ff07a...}), l'adresse Ethereum du signataire, le reçu de consensus 3/3 et le bouton de vérification d'audit cryptographique.
+
+\subsection{Vérification du Smart Contract : Protection Anti-OOM}
+
+La figure~\ref{fig:failed_deployment} démontre l'efficacité du contrat intelligent face à une tentative de surallocation de ressources.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/failed_deployment.png}
+\caption{Rejet immédiat par le Smart Contract d'une allocation excédant la mémoire physique}
+\label{fig:failed_deployment}
+\end{figure}
+
+Lorsqu'un utilisateur demande une quantité de RAM dépassant le budget cluster disponible, le Smart Contract intercepte l'appel dès l'étape 2, interdisant la transmission au consensus Raft et protégeant le matériel contre tout épuisement mémoire.
+
+\subsection{Validation sur Console Physique Master}
+
+La figure~\ref{fig:raspberry_master_kubectl} reproduit la capture photographique directe de l'écran du Master Pi confirmant la conformité exacte de l'état Kubernetes avec le tableau de bord web.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.88\textwidth]{figures/raspberry_master_kubectl.jpeg}
+\caption{Console physique du Master Pi affichant \texttt{kubectl get nodes -o wide} et les pods réels}
+\label{fig:raspberry_master_kubectl}
+\end{figure}
+
+\subsection{Infrastructure Cloudflare Zero Trust et Environnement Local}
+
+Les figures~\ref{fig:cloudflare_tunnels} et~\ref{fig:local_docker} complètent la validation en illustrant la configuration des tunnels de production ainsi que l'environnement de développement local Docker Compose.
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/cloudflare_tunnels.png}
+    \caption{Tunnels Cloudflare Zero Trust en statut Healthy}
+    \label{fig:cloudflare_tunnels}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/local_docker.png}
+    \caption{Environnement de test local Docker Compose}
+    \label{fig:local_docker}
+\end{subfigure}
+\caption{Composants d'infrastructure réseau et environnement de test}
+\label{fig:infra_tools}
+\end{figure}
+
+\newpage
+
+% ==============================================================================
+% SECTION 6 : SPÉCIFICATION DES APIS ET GUIDE D'EXPLOITATION
+% ==============================================================================
+\section{Spécification des APIs et Guide d'Exploitation}
+
+\subsection{Spécification des Endpoints REST du Démon Go}
+
+Le tableau~\ref{tab:api_specs} récapitule l'ensemble des points d'accès exposés par le démon Go unifié sur \texttt{https://bc.aslouneyahya.com}.
+
+\begin{table}[H]
+\centering
+\footnotesize
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{|l|p{4.2cm}|p{6.3cm}|p{2.8cm}|}
+\hline
+\rowcolor{tableheader}
+\textbf{Méthode} & \textbf{Point d'Accès} & \textbf{Description Fonctionnelle} & \textbf{Authentification} \\
+\hline
+\texttt{POST} & \texttt{/api/deployments} & Exécute le pipeline complet en 5 étapes & Signature $secp256k1$ \\
+\hline
+\texttt{GET} & \texttt{/api/deployments} & Liste des conteneurs K3s actifs et pods & Public \\
+\hline
+\texttt{GET} & \texttt{/api/deployments/\{id\}} & Spécifications complètes d'un déploiement & Public \\
+\hline
+\texttt{GET} & \texttt{/api/deployments/\{id\}/manifest} & Restitue le manifest YAML officiel Kubernetes & Public \\
+\hline
+\texttt{GET} & \texttt{/api/deployments/\{id\}/logs} & Streaming temps réel des logs du conteneur & Public \\
+\hline
+\texttt{POST} & \texttt{/api/deployments/\{id\}/exec} & Exécution de commande shell à l'intérieur du pod & Public \\
+\hline
+\texttt{DELETE} & \texttt{/api/deployments/\{id\}} & Résiliation du pod K3s et enregistrement immudb & Signature $secp256k1$ \\
+\hline
+\texttt{GET} & \texttt{/api/cluster/stats} & Télémétrie globale (RAM, CPU, Quorum, Leader) & Public \\
+\hline
+\texttt{GET} & \texttt{/api/cluster/nodes} & Télémétrie hardware détaillée par Raspberry Pi & Public \\
+\hline
+\texttt{GET} & \texttt{/api/ledger} & Historique des transactions et racine de Merkle & Public \\
+\hline
+\texttt{GET} & \texttt{/api/ledger/audit} & Vérification cryptographique d'intégrité de la chaîne & Public \\
+\hline
+\texttt{POST} & \texttt{/api/ledger/simulate-tamper} & Simulation d'altération de bloc pour démonstration & Public (Démo) \\
+\hline
+\texttt{GET} & \texttt{/api/health} & Diagnostic de santé Raft, immudb et K3s & Public \\
+\hline
+\end{tabular}
+\caption{Spécification complète des interfaces d'API REST du démon ChainOps}
+\label{tab:api_specs}
+\end{table}
+
+\subsection{Automatisation du Déploiement et Exploitation}
+
+Pour garantir la reproductibilité intégrale de l'infrastructure, deux scripts d'automatisation autonomes ont été développés et intégrés au dépôt :
+
+\subsubsection{Déploiement du Nœud Maître (Master Pi)}
+Sur le Raspberry Pi 1 (\texttt{pi-node-01}) :
+\begin{lstlisting}[language=bash]
+git clone https://github.com/AslouneYahya/blockchain-cloud-platform.git ~/blockchain-cloud
+cd ~/blockchain-cloud
+sudo bash setup_master_node.sh
+\end{lstlisting}
+Ce script installe K3s en mode serveur avec token prédéfini, déploie immudb v1.11 en service systemd, compile et lance le démon Go ChainOps intégrant le frontend React précompilé.
+
+\subsubsection{Déploiement des Nœuds Ouvriers (Worker Pis)}
+Sur chaque Raspberry Pi travailleur :
+\begin{lstlisting}[language=bash]
+sudo bash setup_worker_node.sh pi-worker-1
+sudo bash setup_worker_node.sh pi-worker-2
+\end{lstlisting}
+Ce script installe l'agent K3s avec le flag d'unicité \texttt{--with-node-id} et configure le service \texttt{k3s-tcp-tunnel.service} connectant le travailleur à \texttt{k3s.aslouneyahya.com}.
+
+\subsubsection{Purge des Nœuds Inactifs}
+Lorsqu'un nœud est réinstallé, l'ancienne entrée peut demeurer à l'état \texttt{NotReady}. La commande d'administration suivante sur le Master permet d'assainir immédiatement le cluster :
+\begin{lstlisting}[language=bash]
+kubectl delete node pi-worker-2
+\end{lstlisting}
+
+\newpage
+
+% ==============================================================================
+% SECTION 7 : CONCLUSION ET PERSPECTIVES D'AVENIR
+% ==============================================================================
+\section{Conclusion et Perspectives d'Avenir}
+
+\subsection{Bilan des Réalisations Techniques et Académiques}
+
+Ce projet, réalisé au sein du département SESNUM de l'INPT sous la supervision de **Mme Meryeme AYACHE**, démontre avec succès la viabilité et les bénéfices concrets de l'application des concepts fondamentaux de la **Blockchain et des Smart Contracts** à la gestion d'infrastructures cloud physiques.
+
+Les principales contributions validées au cours de ce travail comprennent :
+\begin{itemize}[leftmargin=1.2cm]
+    \item \textbf{Élimination de la Confiance Aveugle} : Le remplacement des mécanismes d'authentification centralisés par des signatures asymétriques $secp256k1$ garantit une non-répudiation totale de chaque action d'infrastructure ;
+    \item \textbf{Contrat Intelligent d'Admission Matérielle} : L'application déterministe de politiques de quota mémoire avant toute approbation empêche mathématiquement les pannes par épuisement de ressources ;
+    \item \textbf{Résilience et Consensus Décentralisé} : L'adoption d'un quorum Raft majoritaire sur 3 nœuds physiques assure une continuité de service même en cas d'indisponibilité d'un nœud ;
+    \item \textbf{Auditabilité et Immuabilité Garantie} : Le couplage avec immudb et les arbres de Merkle offre une preuve mathématique infalsifiable de l'état de l'infrastructure, rendant toute attaque interne immédiatement détectable ;
+    \item \textbf{Souveraineté et Architecture Zero Trust} : L'élimination des dépendances aux adresses IP locales au profit de flux TCP routés par Cloudflare confère à l'architecture une flexibilité de déploiement universelle.
+\end{itemize}
+
+\subsection{Perspectives d'Avenir et Axes de Recherche}
+
+Plusieurs pistes d'extension prometteuses peuvent être envisagées pour prolonger cette étude :
+\begin{enumerate}[leftmargin=1.2cm]
+    \item \textbf{Intégration de Preuves à Divulgation Nulle de Connaissance (zk-SNARKs)} : Permettre à un opérateur de prouver qu'un conteneur respecte les politiques de sécurité (conformité d'image, limitation de privilèges) sans divulguer le code source ou les variables d'environnement de la charge utile ;
+    \item \textbf{Gouvernance Décentralisée par DAO Multi-Signatures} : Exiger un consensus multi-signatures (\textit{Multi-Sig}) pour les opérations critiques d'infrastructure (mises à niveau de version du noyau Linux, repartitionnement de stockage) ;
+    \item \textbf{Sharding et Élagage Cryptographique du Registre} : Implémenter des techniques d'élagage d'état (\textit{State Pruning}) fondées sur des accumulateurs cryptographiques pour réduire l'empreinte mémoire sur carte SD tout en maintenant les preuves d'audit.
+\end{enumerate}
+
+\vspace{0.8cm}
+\noindent\textbf{Ressources et Références du Projet :}
+\begin{itemize}
+    \item Dépôt GitHub Officiel : \url{https://github.com/AslouneYahya/blockchain-cloud-platform}
+    \item Dépôt Institutionnel INPT : \url{https://github.com/AslouneYahya/cloud-platform-inpt}
+    \item Plateforme Déployée en Production : \url{https://bc.aslouneyahya.com}
+\end{itemize}
+
+\end{document}
