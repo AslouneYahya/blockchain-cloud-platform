@@ -326,11 +326,20 @@ func (s *Server) HandleClusterStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Fetch real live physical nodes from Kubernetes via client-go
+	if liveNodes, err := s.orchestrator.GetLiveNodes(r.Context()); err == nil && len(liveNodes) > 0 {
+		s.consensus.SyncWithK8sNodes(liveNodes)
+	}
+
 	nodes := s.consensus.GetNodes()
 	leader := s.consensus.GetLeader()
 
 	var totalRam int64 = 0
 	var allocatedRam int64 = 0
+	var totalCores float64 = float64(len(nodes)) * 4.0
+	if totalCores <= 0 {
+		totalCores = 12.0
+	}
 	activePods := 0
 
 	for _, n := range nodes {
@@ -349,7 +358,7 @@ func (s *Server) HandleClusterStats(w http.ResponseWriter, r *http.Request) {
 		TotalRamMb:      totalRam,
 		AllocatedRamMb:  allocatedRam,
 		AvailableRamMb:  totalRam - allocatedRam,
-		TotalCpuCores:   12.0, // 3 Pis x 4 Cores
+		TotalCpuCores:   totalCores,
 		AllocatedCpu:    float64(activePods) * 0.5,
 		ActivePods:      activePods,
 		TotalTxs:        uint64(len(s.ledger.GetTransactions())),

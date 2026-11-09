@@ -54,9 +54,9 @@ export default function ClusterNodesView() {
         }}>
           <span>Nodes: <strong style={{ color: '#f8fafc' }}>{nodes.length}</strong></span>
           <span>•</span>
-          <span>Total RAM: <strong style={{ color: '#f8fafc' }}>12 GB</strong></span>
+          <span>Total RAM: <strong style={{ color: '#f8fafc' }}>{Math.round((stats?.totalRamMb || 12288) / 1024)} GB</strong></span>
           <span>•</span>
-          <span>vCPU: <strong style={{ color: '#f8fafc' }}>12 Cores</strong></span>
+          <span>vCPU: <strong style={{ color: '#f8fafc' }}>{stats?.totalCpuCores || (nodes.length * 4)} Cores</strong></span>
         </div>
       </div>
 
@@ -143,6 +143,21 @@ export default function ClusterNodesView() {
                     <div style={{ width: `${node.cpuUsagePercent}%`, height: '100%', background: '#10b981' }} />
                   </div>
                 </div>
+
+                {node.osImage && (
+                  <div style={{
+                    fontSize: '0.72rem',
+                    color: '#64748b',
+                    paddingTop: '0.6rem',
+                    borderTop: '1px solid #1a1e26',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.2rem',
+                  }}>
+                    <div>OS: <span style={{ color: '#94a3b8' }}>{node.osImage}</span> ({node.architecture || 'arm64'})</div>
+                    {node.kernelVersion && <div>Kernel: <span style={{ color: '#94a3b8' }}>{node.kernelVersion}</span></div>}
+                  </div>
+                )}
               </div>
             </div>
           );

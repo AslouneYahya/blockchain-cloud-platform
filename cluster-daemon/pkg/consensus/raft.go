@@ -78,6 +78,40 @@ func NewRaftEngine() *RaftEngine {
 	return engine
 }
 
+// SyncWithK8sNodes updates the Raft voter quorum dynamically from live Kubernetes nodes
+func (r *RaftEngine) SyncWithK8sNodes(nodes []types.ClusterNodeInfo) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if len(nodes) == 0 {
+		return
+	}
+
+	r.nodes = make(map[string]*RaftNode)
+	hasLeader := false
+	for _, n := range nodes {
+		isOnline := n.Status == "Ready"
+		r.nodes[n.Name] = &RaftNode{
+			ID:        n.Name,
+			Name:      n.Name,
+			IP:        n.IP,
+			Role:      n.Role,
+			IsOnline:  isOnline,
+			LastSeen:  time.Now(),
+			TotalRam:  n.TotalRamMb,
+			UsedRam:   n.UsedRamMb,
+			CpuUsage:  n.CpuUsage,
+		}
+		if n.Role == "Leader" {
+			r.leaderID = n.Name
+			hasLeader = true
+		}
+	}
+	if !hasLeader && len(nodes) > 0 {
+		r.leaderID = nodes[0].Name
+	}
+}
+
 // GetNodes returns all cluster nodes and their health
 func (r *RaftEngine) GetNodes() []types.ClusterNodeInfo {
 	r.mu.RLock()

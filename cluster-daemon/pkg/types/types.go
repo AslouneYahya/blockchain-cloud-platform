@@ -109,11 +109,15 @@ type ClusterStats struct {
 
 // ClusterNodeInfo represents an individual Raspberry Pi node in the cluster.
 type ClusterNodeInfo struct {
-	Name       string  `json:"name"`
-	Role       string  `json:"role"` // "Leader", "Follower"
-	Status     string  `json:"status"` // "Ready", "Degraded", "Offline"
-	IP         string  `json:"ip"`
-	TotalRamMb int64   `json:"totalRamMb"`
-	UsedRamMb  int64   `json:"usedRamMb"`
-	CpuUsage   float64 `json:"cpuUsagePercent"`
+	Name             string  `json:"name"`
+	Role             string  `json:"role"`   // "Leader", "Follower"
+	Status           string  `json:"status"` // "Ready", "Degraded", "Offline"
+	IP               string  `json:"ip"`
+	TotalRamMb       int64   `json:"totalRamMb"`
+	UsedRamMb        int64   `json:"usedRamMb"`
+	CpuUsage         float64 `json:"cpuUsagePercent"`
+	OSImage          string  `json:"osImage,omitempty"`
+	KernelVersion    string  `json:"kernelVersion,omitempty"`
+	ContainerRuntime string  `json:"containerRuntime,omitempty"`
+	Architecture     string  `json:"architecture,omitempty"`
 }
