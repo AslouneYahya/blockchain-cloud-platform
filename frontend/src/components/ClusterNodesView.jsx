@@ -158,6 +158,37 @@ export default function ClusterNodesView() {
                     {node.kernelVersion && <div>Kernel: <span style={{ color: '#94a3b8' }}>{node.kernelVersion}</span></div>}
                   </div>
                 )}
+
+                {/* Active Workloads on this Physical Node */}
+                {node.workloads && node.workloads.length > 0 && (
+                  <div style={{
+                    fontSize: '0.75rem',
+                    paddingTop: '0.6rem',
+                    borderTop: '1px solid #1a1e26',
+                  }}>
+                    <div style={{ color: '#94a3b8', marginBottom: '0.35rem', fontWeight: '500' }}>
+                      Active Pods ({node.workloads.length}):
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                      {node.workloads.map(wl => (
+                        <span
+                          key={wl}
+                          style={{
+                            padding: '0.15rem 0.5rem',
+                            background: '#1e293b',
+                            border: '1px solid #334155',
+                            borderRadius: '4px',
+                            color: '#38bdf8',
+                            fontFamily: 'monospace',
+                            fontSize: '0.72rem',
+                          }}
+                        >
+                          📦 {wl}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           );

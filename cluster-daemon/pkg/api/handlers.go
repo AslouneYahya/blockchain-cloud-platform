@@ -342,14 +342,32 @@ func (s *Server) HandleClusterStats(w http.ResponseWriter, r *http.Request) {
 	}
 	activePods := 0
 
-	for _, n := range nodes {
-		totalRam += n.TotalRamMb
-	}
+	// Aggregate allocations per physical node
+	nodeAllocations := make(map[string]int64)
+	nodePodCounts := make(map[string]int)
+	nodeWorkloads := make(map[string][]string)
 
 	for _, dep := range s.orchestrator.GetDeployments() {
-		if dep.Phase == "Running" {
+		if dep.Phase == "Running" || dep.Phase == "Pending" {
 			allocatedRam += dep.RamMb
 			activePods += int(dep.Replicas)
+
+			targetNode := dep.NodeAssigned
+			nodeAllocations[targetNode] += dep.RamMb
+			nodePodCounts[targetNode] += int(dep.Replicas)
+			nodeWorkloads[targetNode] = append(nodeWorkloads[targetNode], dep.Name)
+		}
+	}
+
+	for i := range nodes {
+		totalRam += nodes[i].TotalRamMb
+		assignedRam := nodeAllocations[nodes[i].Name]
+		nodes[i].AllocatedRamMb = assignedRam
+		nodes[i].UsedRamMb += assignedRam
+		nodes[i].ActivePods = nodePodCounts[nodes[i].Name]
+		nodes[i].Workloads = nodeWorkloads[nodes[i].Name]
+		if nodes[i].ActivePods > 0 {
+			nodes[i].CpuUsage += float64(nodes[i].ActivePods) * 3.5
 		}
 	}
 
