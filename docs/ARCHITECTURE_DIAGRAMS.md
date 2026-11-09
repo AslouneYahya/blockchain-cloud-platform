@@ -26,41 +26,41 @@ All diagrams are written in **Mermaid** and render automatically in GitHub, VS C
 graph TD
     subgraph Client["Client Tier"]
         Dev["Developer / Operator"]
-        MM["MetaMask / secp256k1 Wallet"]
-        ReactUI["React Web3 Dashboard (Port 5173 / 443)"]
+        MM["MetaMask / secp256k1 Local Keypair"]
+        ReactUI["React Web3 Dashboard (Port 8080 / 443)"]
         Dev --> MM
         Dev --> ReactUI
     end
 
     subgraph Edge["Cloudflare Zero-Trust Edge Tier"]
-        CF_API["bc.aslouneyahya.com (HTTPS :443)"]
-        CF_K3S["k3s.aslouneyahya.com (HTTPS :443)"]
+        CF_API["bc.aslouneyahya.com (HTTPS :443 -> HTTP :8080)"]
+        CF_K3S["k3s.aslouneyahya.com (Layer 4 TCP -> TCP :6443)"]
     end
 
     ReactUI -->|Signed EIP-191 JSON| CF_API
 
-    subgraph Master["Raspberry Pi Master Node (pi-node-01 — 192.168.1.101)"]
+    subgraph Master["Raspberry Pi Master Node (pi-node-01 — 192.168.1.212)"]
         Cloudflared["cloudflared tunnel daemon"]
         Daemon["ChainOps Go Daemon (:8080)"]
         Immudb["immudb Immutable Ledger (:3322)"]
         K3sServer["K3s Control Plane Server (:6443)"]
-        LocalStorage["/var/lib/immudb (Merkle Root Store)"]
+        LocalStorage["/opt/chainops/data (Merkle Root & immudb)"]
 
         CF_API --> Cloudflared
         CF_K3S --> Cloudflared
         Cloudflared -->|localhost:8080| Daemon
-        Cloudflared -->|localhost:6443| K3sServer
+        Cloudflared -->|TCP localhost:6443| K3sServer
         Daemon -->|TCP :3322| Immudb
         Daemon -->|client-go API| K3sServer
         Immudb --> LocalStorage
     end
 
-    subgraph Workers["Raspberry Pi Worker Nodes"]
-        Worker1["pi-node-02 (Compute Node — 192.168.1.102)<br/>k3s-agent daemon"]
-        Worker2["pi-node-03 (Compute Node — 192.168.1.103)<br/>k3s-agent daemon"]
+    subgraph Workers["Raspberry Pi Physical Worker Nodes"]
+        Worker1["pi-worker-1-afe458a1 (Compute — 192.168.1.213)<br/>• cloudflared access tcp<br/>• k3s-agent daemon<br/>• containerd runtime"]
+        Worker2["pi-worker-2-d50675de (Compute — 192.168.1.214)<br/>• cloudflared access tcp<br/>• k3s-agent daemon<br/>• containerd runtime"]
 
-        K3sServer -.->|K3s WireGuard Tunnel| Worker1
-        K3sServer -.->|K3s WireGuard Tunnel| Worker2
+        CF_K3S -.->|Public TCP Stream| Worker1
+        CF_K3S -.->|Public TCP Stream| Worker2
     end
 ```
 
@@ -87,16 +87,16 @@ sequenceDiagram
     Note over Verifier: Step 2.1: ecrecover(Hash(Payload), Sig)
     Verifier->>Verifier: Mathematically recovers signer public key
     Note over Verifier: Step 2.2: Deterministic Smart Contract Rules
-    Verifier->>Verifier: Checks: (Allocated RAM + 512MB) <= 12288MB Cluster Cap
+    Verifier->>Verifier: Checks: (Allocated RAM + 512MB) <= 11382MB Cluster Cap
 
     Verifier->>Raft: ProposeAndAgree(PayloadHash, SignerAddress)
     Note over Raft: Step 3: Leader broadcasts proposal to Worker Pis
     par Quorum Voting Across Pis
         Raft->>Raft: pi-node-01 (Leader): Votes YES (Signs voteHash)
     and
-        Raft->>Raft: pi-node-02 (Follower): Votes YES (Signs voteHash)
+        Raft->>Raft: pi-worker-1-afe458a1 (Follower): Votes YES (Signs voteHash)
     and
-        Raft->>Raft: pi-node-03 (Follower): Votes YES (Signs voteHash)
+        Raft->>Raft: pi-worker-2-d50675de (Follower): Votes YES (Signs voteHash)
     end
     Note over Raft: Quorum Check: 3/3 >= Majority Quorum (2 of 3)
 
@@ -120,15 +120,15 @@ flowchart TD
 
     SC_CHECK -- "Invalid signature (ecrecover mismatch)" --> REJECT1["❌ 401 Unauthorized: Signature Forged"]
     SC_CHECK -- "Requested RAM > 2048 MB single container cap" --> REJECT2["❌ 403 Forbidden: Container Quota Exceeded"]
-    SC_CHECK -- "Allocated RAM + Requested RAM > 12288 MB cluster cap" --> REJECT3["❌ 403 Forbidden: Cluster Capacity Saturated"]
+    SC_CHECK -- "Allocated RAM + Requested RAM > 11382 MB cluster cap" --> REJECT3["❌ 403 Forbidden: Cluster Capacity Saturated"]
     SC_CHECK -- "Invalid DNS-1123 workload name" --> REJECT4["❌ 400 Bad Request: Invalid Kubernetes Name"]
 
     SC_CHECK -- "✅ All Smart Contract Rules Approved" --> RAFT_VOTE{"Step 3: Raft Consensus Engine<br/>(Distributed Agreement)"}
 
     subgraph ConsensusMesh["Raft 3-Node Quorum Mesh"]
         N1["pi-node-01 (Leader)<br/>State: Local check passed"]
-        N2["pi-node-02 (Follower)<br/>State: Local check passed"]
-        N3["pi-node-03 (Follower)<br/>State: Local check passed"]
+        N2["pi-worker-1-afe458a1 (Follower)<br/>State: Local check passed"]
+        N3["pi-worker-2-d50675de (Follower)<br/>State: Local check passed"]
     end
 
     RAFT_VOTE --> ConsensusMesh
@@ -273,22 +273,22 @@ graph TB
 flowchart TD
     subgraph ScenarioA["Scenario A: Healthy Cluster (3/3 Nodes Online)"]
         A_Leader["pi-node-01 (Leader): VOTE YES"]
-        A_W1["pi-node-02 (Follower): VOTE YES"]
-        A_W2["pi-node-03 (Follower): VOTE YES"]
+        A_W1["pi-worker-1-afe458a1 (Follower): VOTE YES"]
+        A_W2["pi-worker-2-d50675de (Follower): VOTE YES"]
         A_Leader & A_W1 & A_W2 --> A_Result["3/3 Positive Votes (Quorum Reached ✅)<br/>Transaction Approved"]
     end
 
     subgraph ScenarioB["Scenario B: 1 Worker Pi Crashes / Power Loss (2/3 Online)"]
         B_Leader["pi-node-01 (Leader): VOTE YES"]
-        B_W1["pi-node-02 (Follower): VOTE YES"]
-        B_W2["pi-node-03 (CRASHED / OFFLINE): NO VOTE"]
+        B_W1["pi-worker-1-afe458a1 (Follower): VOTE YES"]
+        B_W2["pi-worker-2-d50675de (CRASHED / OFFLINE): NO VOTE"]
         B_Leader & B_W1 & B_W2 --> B_Result["2/3 Positive Votes (Majority Quorum >= 2 ✅)<br/>High Availability Maintained!"]
     end
 
     subgraph ScenarioC["Scenario C: Network Partition / 2 Pis Offline (1/3 Online)"]
         C_Leader["pi-node-01 (Leader): VOTE YES"]
-        C_W1["pi-node-02 (OFFLINE): NO VOTE"]
-        C_W2["pi-node-03 (OFFLINE): NO VOTE"]
+        C_W1["pi-worker-1-afe458a1 (OFFLINE): NO VOTE"]
+        C_W2["pi-worker-2-d50675de (OFFLINE): NO VOTE"]
         C_Leader & C_W1 & C_W2 --> C_Result["1/3 Positive Votes (Quorum Failed ❌)<br/>Cluster Enters Safe Mode to Prevent Split-Brain"]
     end
 ```
@@ -343,21 +343,25 @@ graph LR
     end
 
     Browser -->|https://bc.aslouneyahya.com| CF_Dns
-    Browser -->|https://k3s.aslouneyahya.com| CF_Dns
+    Workers -->|k3s.aslouneyahya.com (TCP :6443)| CF_Dns
 
-    subgraph MasterHardware["Raspberry Pi Master Hardware"]
+    subgraph MasterHardware["Raspberry Pi Master Hardware (pi-node-01)"]
         TunnelDaemon["cloudflared process"]
-        GoAPI["Go Daemon (:8080)"]
-        K3sAPI["K3s API Server (:6443)"]
+        GoAPI["Go Daemon (:8080) + Embedded React UI"]
+        K3sAPI["K3s Control Plane Server (TCP :6443)"]
         Traefik["Traefik Ingress Controller (:80)"]
-        Pod1["Pod: python-backend (10.42.10.52:8000)"]
 
         CF_Tunnel -->|Encrypted Tunnel| TunnelDaemon
         TunnelDaemon -->|HTTP :8080| GoAPI
-        TunnelDaemon -->|HTTPS :6443| K3sAPI
+        TunnelDaemon -->|TCP :6443| K3sAPI
         GoAPI -.->|client-go API| K3sAPI
-        K3sAPI -.->|Routes Traffic| Traefik
-        Traefik -->|Internal Pod IP| Pod1
+    end
+
+    subgraph WorkerHardware["Physical Worker Nodes"]
+        W1["pi-worker-1-afe458a1<br/>Pod: test2 (python:3.11-alpine)"]
+        W2["pi-worker-2-d50675de<br/>Pod: test (web-service)"]
+        K3sAPI -.->|mTLS Tunnel| W1
+        K3sAPI -.->|mTLS Tunnel| W2
     end
 ```
 
