@@ -74,9 +74,10 @@ if [ -f /tmp/cloudflare-warp.deb ]; then
     sudo systemctl enable --now warp-svc || true
     sleep 3
     yes | warp-cli --accept-tos register 2>/dev/null || true
-    warp-cli --accept-tos mode warp 2>/dev/null || true
+    # Use proxy mode on worker to prevent TUN routing loop with cloudflared access tcp
+    warp-cli --accept-tos mode proxy 2>/dev/null || true
     warp-cli --accept-tos connect 2>/dev/null || true
-    echo "✓ Cloudflare WARP daemon (warp-svc) and CLI (warp-cli) connected!"
+    echo "✓ Cloudflare WARP daemon (warp-svc) and CLI (warp-cli) connected in proxy mode (prevents TCP tunnel loop)!"
 fi
 
 echo "======================================================================"
