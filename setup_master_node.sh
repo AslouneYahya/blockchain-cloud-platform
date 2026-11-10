@@ -121,6 +121,14 @@ echo "======================================================================"
 IMMUDB_VERSION="v1.11.2"
 sudo mkdir -p /var/lib/immudb /opt/chainops/data
 
+# Stop any old immudb process and ensure port 8080 is freed for ChainOps daemon
+echo "Stopping old immudb instance and releasing port 8080..."
+sudo systemctl stop immudb.service 2>/dev/null || true
+sudo fuser -k 8080/tcp 2>/dev/null || true
+sudo fuser -k 3322/tcp 2>/dev/null || true
+sudo pkill -f "/usr/local/bin/immudb" 2>/dev/null || true
+sleep 1
+
 if [ ! -f /usr/local/bin/immudb ]; then
     echo "Downloading immudb ARM64 release $IMMUDB_VERSION..."
     sudo curl -# -L -o /usr/local/bin/immudb "https://github.com/codenotary/immudb/releases/download/${IMMUDB_VERSION}/immudb-${IMMUDB_VERSION}-linux-arm64"
@@ -145,14 +153,20 @@ EOF'
 
 sudo systemctl daemon-reload
 sudo systemctl enable --now immudb.service
+sudo systemctl restart immudb.service
+sleep 2
 
 echo "======================================================================"
 echo "  [5/5] Installing & Starting ChainOps Go Daemon (Port 8080)          "
 echo "======================================================================"
 sudo systemctl stop chainops-daemon.service 2>/dev/null || true
+sudo fuser -k 8080/tcp 2>/dev/null || true
 
+sudo mkdir -p /opt/chainops /opt/chainops/data
 if [ -f "$INSTALL_DIR/cluster-daemon/daemon-arm64" ]; then
     sudo cp -f "$INSTALL_DIR/cluster-daemon/daemon-arm64" /opt/chainops/chainops-daemon
+    sudo chmod +x /opt/chainops/chainops-daemon
+elif [ -f "/opt/chainops/chainops-daemon" ]; then
     sudo chmod +x /opt/chainops/chainops-daemon
 fi
 
@@ -184,10 +198,10 @@ EOF'
 sudo systemctl daemon-reload
 if [ -f /opt/chainops/chainops-daemon ]; then
     sudo systemctl enable --now chainops-daemon.service
-    sudo systemctl restart chainops-daemon.service || true
+    sudo systemctl restart chainops-daemon.service
 fi
 
-echo "Restarting Cloudflare tunnel to reload connections..."
+echo "Restarting Cloudflare tunnel to clear stale reverse-proxy connections..."
 sudo systemctl restart cloudflared.service || true
 
 echo "Checking local services..."

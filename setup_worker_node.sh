@@ -1,19 +1,21 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# setup_worker_node.sh — Zero-Config Worker Node Setup via Cloudflare TCP Bridge
+# setup_worker_node.sh — Zero-Config Worker Node Setup
 # 1. Stops stale services & cleans old K3s cache
-# 2. Installs & activates Cloudflare WARP (warp-svc & warp-cli), just like master
-# 3. Sets up Cloudflare TCP Access Bridge (k3s-tcp-tunnel.service)
+# 2. Installs & registers Cloudflare WARP (warp-svc & warp-cli), kept in proxy mode
+# 3. Detects Master endpoint (Direct LAN or Cloudflare TCP Bridge k3s.aslouneyahya.com)
 # 4. Configures Linux cgroups for K3s
-# 5. Joins K3s Cluster via TCP bridge (Node ID isolation)
+# 5. Joins K3s Cluster via resolved endpoint
 # ==============================================================================
 set -e
 
 DOMAIN_ENDPOINT="k3s.aslouneyahya.com"
-CLUSTER_TOKEN="K10b1a611dcae299e54ae3b462c66a9bfc4fcc01e768abcf2b22ba2a4e19bac01bd::server:inpt-blockchain-cluster-secret-2026"
+CLUSTER_TOKEN="inpt-blockchain-cluster-secret-2026"
 
-# Determine unique node name (e.g. pi-worker-2, pi-worker-1)
+# Node name & optional Master target (e.g. ./setup_worker_node.sh pi-worker-1 192.168.1.212)
 TARGET_NODE_NAME="${1:-}"
+MASTER_OVERRIDE="${2:-}"
+
 if [ -z "$TARGET_NODE_NAME" ]; then
     if [ -n "$SUDO_USER" ] && [ "$SUDO_USER" != "pi" ] && [ "$SUDO_USER" != "root" ]; then
         TARGET_NODE_NAME="$SUDO_USER"
@@ -49,7 +51,7 @@ sudo rm -f /etc/systemd/system/k3s-agent.service.env
 sudo systemctl daemon-reload
 
 echo "======================================================================"
-echo "  [2/5] Ensuring Cloudflare WARP (warp-cli & warp-svc) is Active      "
+echo "  [2/5] Ensuring Cloudflare WARP (warp-cli & warp-svc) is Installed   "
 echo "======================================================================"
 RELEASE=$(lsb_release -cs 2>/dev/null || grep VERSION_CODENAME /etc/os-release | cut -d= -f2 || echo "bullseye")
 if [ "$RELEASE" = "bullseye" ]; then
@@ -72,29 +74,42 @@ if [ -f /tmp/cloudflare-warp.deb ]; then
     sudo cp /tmp/warp_extract/lib/systemd/system/warp-svc.service /etc/systemd/system/warp-svc.service || true
     sudo systemctl daemon-reload
     sudo systemctl enable --now warp-svc || true
-    sleep 3
+    sleep 2
     yes | warp-cli --accept-tos register 2>/dev/null || true
-    # Use proxy mode on worker to prevent TUN routing loop with cloudflared access tcp
+    # Keep WARP in proxy mode/disconnected to prevent capturing default route and breaking K3s overlay
     warp-cli --accept-tos mode proxy 2>/dev/null || true
-    warp-cli --accept-tos connect 2>/dev/null || true
-    echo "✓ Cloudflare WARP daemon (warp-svc) and CLI (warp-cli) connected in proxy mode (prevents TCP tunnel loop)!"
+    warp-cli disconnect 2>/dev/null || true
+    echo "✓ Cloudflare WARP (warp-svc & warp-cli) ready on worker."
 fi
 
 echo "======================================================================"
-echo "  [3/5] Setting up Cloudflare TCP Access Bridge                       "
+echo "  [3/5] Resolving Master Endpoint (LAN vs Cloudflare TCP Bridge)      "
 echo "======================================================================"
-if [ ! -f /usr/local/bin/cloudflared ]; then
-    echo "Downloading cloudflared ARM64 for TCP bridge..."
-    sudo curl -# -L -o /usr/local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64
-    sudo chmod +x /usr/local/bin/cloudflared
-fi
+K3S_SERVER_URL=""
 
-# Create client-side TCP bridge service (forwards local 6443 -> k3s.aslouneyahya.com via raw TCP)
-cat << EOF | sudo tee /etc/systemd/system/k3s-tcp-tunnel.service > /dev/null
+if [ -n "$MASTER_OVERRIDE" ]; then
+    if [[ "$MASTER_OVERRIDE" =~ ^https?:// ]]; then
+        K3S_SERVER_URL="$MASTER_OVERRIDE"
+    else
+        K3S_SERVER_URL="https://${MASTER_OVERRIDE}:6443"
+    fi
+    echo "✓ Using explicit Master endpoint: ${K3S_SERVER_URL}"
+elif curl -k -s --connect-timeout 2 https://192.168.1.212:6443/cacerts >/dev/null 2>&1 || curl -k -s --connect-timeout 2 https://192.168.1.212:6443/ping >/dev/null 2>&1; then
+    echo "✓ Discovered Master Pi on local network at 192.168.1.212:6443"
+    K3S_SERVER_URL="https://192.168.1.212:6443"
+else
+    echo "Master not detected on LAN 192.168.1.212. Activating Cloudflare TCP Access Bridge..."
+    if [ ! -f /usr/local/bin/cloudflared ]; then
+        echo "Downloading cloudflared ARM64 for TCP bridge..."
+        sudo curl -# -L -o /usr/local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64
+        sudo chmod +x /usr/local/bin/cloudflared
+    fi
+
+    cat << EOF | sudo tee /etc/systemd/system/k3s-tcp-tunnel.service > /dev/null
 [Unit]
 Description=Cloudflare TCP Access Bridge to K3s Master
-After=network.target network-online.target warp-svc.service
-Wants=network-online.target warp-svc.service
+After=network.target network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
@@ -107,14 +122,11 @@ KillMode=process
 WantedBy=multi-user.target
 EOF
 
-sudo systemctl daemon-reload
-sudo systemctl enable --now k3s-tcp-tunnel.service
-sleep 3
-
-# Verify TCP tunnel is listening locally
-if ! ss -tlpn | grep -q ":6443"; then
-    echo "Waiting for TCP tunnel bridge to bind port 6443..."
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now k3s-tcp-tunnel.service
     sleep 3
+    K3S_SERVER_URL="https://127.0.0.1:6443"
+    echo "✓ Cloudflare TCP Bridge running on 127.0.0.1:6443 -> ${DOMAIN_ENDPOINT}"
 fi
 
 echo "======================================================================"
@@ -131,10 +143,10 @@ if [ -f "$CMDLINE_FILE" ]; then
 fi
 
 echo "======================================================================"
-echo "  [5/5] Joining K3s Cluster via TCP Bridge (Node: ${TARGET_NODE_NAME}) "
+echo "  [5/5] Joining K3s Cluster via ${K3S_SERVER_URL} (Node: ${TARGET_NODE_NAME})"
 echo "======================================================================"
 
-curl -sfL https://get.k3s.io | K3S_URL="https://127.0.0.1:6443" K3S_TOKEN="${CLUSTER_TOKEN}" sh -s - agent \
+curl -sfL https://get.k3s.io | K3S_URL="${K3S_SERVER_URL}" K3S_TOKEN="${CLUSTER_TOKEN}" sh -s - agent \
     --node-name "${TARGET_NODE_NAME}" \
     --with-node-id
 
@@ -147,9 +159,8 @@ sudo systemctl status k3s-agent.service --no-pager || true
 
 echo ""
 echo "======================================================================"
-echo "  WORKER PI CONNECTED AND RUNNING VIA CLOUDFLARE TCP & WARP!          "
+echo "  WORKER PI CONNECTED AND RUNNING!                                    "
 echo "  - Node Name:    ${TARGET_NODE_NAME}                                "
-echo "  - WARP Client:  warp-cli connected & active                        "
-echo "  - Cloudflare:   TCP bridge via ${DOMAIN_ENDPOINT}                  "
-echo "  - Local IPs:    NONE (Pure domain-based TCP tunnel)                 "
+echo "  - Server URL:   ${K3S_SERVER_URL}                                  "
+echo "  - WARP Client:  Installed & Active (Proxy Mode)                    "
 echo "======================================================================"
