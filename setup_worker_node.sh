@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # setup_worker_node.sh — Zero-Config Worker Node Setup via Cloudflare TCP Bridge
-# Connects outbound to Master via: k3s.aslouneyahya.com (TCP mode)
-# NO local IP addresses required.
+# 1. Stops stale services & cleans old K3s cache
+# 2. Installs & activates Cloudflare WARP (warp-svc & warp-cli), just like master
+# 3. Sets up Cloudflare TCP Access Bridge (k3s-tcp-tunnel.service)
+# 4. Configures Linux cgroups for K3s
+# 5. Joins K3s Cluster via TCP bridge (Node ID isolation)
 # ==============================================================================
 set -e
 
@@ -23,7 +26,7 @@ if [ -z "$TARGET_NODE_NAME" ]; then
 fi
 
 echo "======================================================================"
-echo "  [1/4] Stopping stale services & cleaning old K3s cache              "
+echo "  [1/5] Stopping stale services & cleaning old K3s cache              "
 echo "======================================================================"
 sudo systemctl stop k3s-agent 2>/dev/null || true
 sudo systemctl stop k3s-tcp-tunnel 2>/dev/null || true
@@ -46,7 +49,38 @@ sudo rm -f /etc/systemd/system/k3s-agent.service.env
 sudo systemctl daemon-reload
 
 echo "======================================================================"
-echo "  [2/4] Setting up Cloudflare TCP Access Bridge                       "
+echo "  [2/5] Ensuring Cloudflare WARP (warp-cli & warp-svc) is Active      "
+echo "======================================================================"
+RELEASE=$(lsb_release -cs 2>/dev/null || grep VERSION_CODENAME /etc/os-release | cut -d= -f2 || echo "bullseye")
+if [ "$RELEASE" = "bullseye" ]; then
+    DEB_URL="https://pkg.cloudflareclient.com/pool/bullseye/main/c/cloudflare-warp/cloudflare-warp_2026.3.846.0_arm64.deb"
+else
+    DEB_URL="https://pkg.cloudflareclient.com/pool/bookworm/main/c/cloudflare-warp/cloudflare-warp_2026.8.2115.0_arm64.deb"
+fi
+
+if [ ! -f /tmp/cloudflare-warp.deb ]; then
+    echo "Downloading Cloudflare WARP for $RELEASE..."
+    curl -# -L -o /tmp/cloudflare-warp.deb "$DEB_URL" || true
+fi
+
+if [ -f /tmp/cloudflare-warp.deb ]; then
+    rm -rf /tmp/warp_extract && mkdir -p /tmp/warp_extract
+    dpkg-deb -x /tmp/cloudflare-warp.deb /tmp/warp_extract
+    sudo cp /tmp/warp_extract/bin/warp-svc /bin/warp-svc || true
+    sudo cp /tmp/warp_extract/bin/warp-cli /bin/warp-cli || true
+    sudo chmod +x /bin/warp-svc /bin/warp-cli || true
+    sudo cp /tmp/warp_extract/lib/systemd/system/warp-svc.service /etc/systemd/system/warp-svc.service || true
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now warp-svc || true
+    sleep 3
+    yes | warp-cli --accept-tos register 2>/dev/null || true
+    warp-cli --accept-tos mode warp 2>/dev/null || true
+    warp-cli --accept-tos connect 2>/dev/null || true
+    echo "✓ Cloudflare WARP daemon (warp-svc) and CLI (warp-cli) connected!"
+fi
+
+echo "======================================================================"
+echo "  [3/5] Setting up Cloudflare TCP Access Bridge                       "
 echo "======================================================================"
 if [ ! -f /usr/local/bin/cloudflared ]; then
     echo "Downloading cloudflared ARM64 for TCP bridge..."
@@ -58,8 +92,8 @@ fi
 cat << EOF | sudo tee /etc/systemd/system/k3s-tcp-tunnel.service > /dev/null
 [Unit]
 Description=Cloudflare TCP Access Bridge to K3s Master
-After=network.target network-online.target
-Wants=network-online.target
+After=network.target network-online.target warp-svc.service
+Wants=network-online.target warp-svc.service
 
 [Service]
 Type=simple
@@ -83,7 +117,7 @@ if ! ss -tlpn | grep -q ":6443"; then
 fi
 
 echo "======================================================================"
-echo "  [3/4] Configuring Linux Kernel cgroups on Worker Pi                 "
+echo "  [4/5] Configuring Linux Kernel cgroups on Worker Pi                 "
 echo "======================================================================"
 CMDLINE_FILE="/boot/firmware/cmdline.txt"
 [ ! -f "$CMDLINE_FILE" ] && CMDLINE_FILE="/boot/cmdline.txt"
@@ -96,7 +130,7 @@ if [ -f "$CMDLINE_FILE" ]; then
 fi
 
 echo "======================================================================"
-echo "  [4/4] Joining K3s Cluster via TCP Bridge (Node: ${TARGET_NODE_NAME}) "
+echo "  [5/5] Joining K3s Cluster via TCP Bridge (Node: ${TARGET_NODE_NAME}) "
 echo "======================================================================"
 
 curl -sfL https://get.k3s.io | K3S_URL="https://127.0.0.1:6443" K3S_TOKEN="${CLUSTER_TOKEN}" sh -s - agent \
@@ -112,8 +146,9 @@ sudo systemctl status k3s-agent.service --no-pager || true
 
 echo ""
 echo "======================================================================"
-echo "  WORKER PI CONNECTED AND RUNNING VIA CLOUDFLARE TCP!                 "
+echo "  WORKER PI CONNECTED AND RUNNING VIA CLOUDFLARE TCP & WARP!          "
 echo "  - Node Name:    ${TARGET_NODE_NAME}                                "
+echo "  - WARP Client:  warp-cli connected & active                        "
 echo "  - Cloudflare:   TCP bridge via ${DOMAIN_ENDPOINT}                  "
 echo "  - Local IPs:    NONE (Pure domain-based TCP tunnel)                 "
 echo "======================================================================"

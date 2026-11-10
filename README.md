@@ -288,7 +288,7 @@ sudo bash setup_master_node.sh
 ```
 
 ### 2. Zero-Config Worker Setup (Raspberry Pis 2 & 3)
-Run the automated worker provisioning script on each worker Pi:
+Run the automated worker provisioning script on each worker Pi. Just like the master node, this script installs and activates **Cloudflare WARP CLI (`warp-svc` & `warp-cli`)**, establishes the Layer 4 TCP tunnel bridge (`k3s-tcp-tunnel.service`), enables Linux kernel cgroups, and joins the K3s cluster:
 ```bash
 # On Worker 1
 git clone https://github.com/AslouneYahya/blockchain-cloud-platform.git ~/blockchain-cloud

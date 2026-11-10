@@ -369,15 +369,16 @@ Failed to connect to https://127.0.0.1:6444/cacerts: 403 Forbidden
 \textbf{Diagnosis:} Layer 7 reverse proxies terminate TLS at Cloudflare's edge. However, Kubernetes internode clustering relies on \textbf{Mutual TLS (mTLS)} where both client and server present X.509 certificates. By terminating TLS and rewriting the HTTP \texttt{Host} header to \texttt{127.0.0.1:6444}, Cloudflare stripped client certificates, causing K3s server to instantly reject the handshake with HTTP 403.
 \end{alertwarning}
 
-\begin{calloutbox}[Production Solution: Layer 4 Raw TCP Tunnel Stream]
-To preserve end-to-end mTLS without exposing physical public IP addresses, we re-architected the tunnel:
+\begin{calloutbox}[Production Solution: Layer 4 Raw TCP Tunnel Stream \& Cloudflare WARP]
+To preserve end-to-end mTLS and enforce zero-trust identity across the bare-metal cluster without public IP addresses, the architecture deploys symmetric Cloudflare client services:
 \begin{itemize}
-    \item Cloudflare Edge Rule: Route \texttt{k3s.aslouneyahya.com} as raw \textbf{TCP to 127.0.0.1:6443};
-    \item Worker nodes run a local client bridge daemon (\texttt{k3s-tcp-tunnel.service}):
+    \item \textbf{Cloudflare WARP Client (\texttt{warp-cli} \& \texttt{warp-svc})}: Installed on the master and all physical worker nodes, authenticating each machine into Cloudflare Zero Trust and encrypting egress mesh routing;
+    \item \textbf{Cloudflare Edge TCP Rule}: Maps \url{k3s.aslouneyahya.com} as a raw \textbf{Layer~4 TCP stream} targeting port 6443 on the master;
+    \item \textbf{Worker Local TCP Client Bridge (\texttt{k3s-tcp-tunnel.service})}:
     \begin{lstlisting}[language=bash]
 cloudflared access tcp --hostname k3s.aslouneyahya.com --url 127.0.0.1:6443
     \end{lstlisting}
-    \item The local K3s agent points to \texttt{https://127.0.0.1:6443}. Raw TCP packets stream across Cloudflare untouched, allowing native Kubernetes mTLS to negotiate cleanly without local network dependencies.
+    \item The worker K3s agent binds to \texttt{https://127.0.0.1:6443}. Uninspected TCP packets traverse Cloudflare untouched, allowing native Kubernetes mutual TLS (mTLS) to negotiate cleanly without local network dependencies.
 \end{itemize}
 \end{calloutbox}
 
@@ -824,12 +825,20 @@ sudo bash setup_master_node.sh
 \end{lstlisting}
 
 \subsubsection{Worker Node Deployment (Raspberry Pis 2 \& 3)}
-On each worker node:
+On each physical worker node:
 \begin{lstlisting}[language=bash]
-sudo bash setup_worker_node.sh pi-worker-1
-sudo bash setup_worker_node.sh pi-worker-2
+git clone https://github.com/AslouneYahya/blockchain-cloud-platform.git ~/blockchain-cloud
+cd ~/blockchain-cloud
+sudo bash setup_worker_node.sh pi-worker-1 # On Worker 1
+sudo bash setup_worker_node.sh pi-worker-2 # On Worker 2
 \end{lstlisting}
-The script injects \texttt{--with-node-id} to prevent node password conflicts upon reconnecting, and establishes \texttt{k3s-tcp-tunnel.service}.
+Just like the master node, \texttt{setup\_worker\_node.sh} provides end-to-end automated provisioning:
+\begin{enumerate}[leftmargin=1.2cm]
+    \item \textbf{Cloudflare WARP}: Sets up the ARM64 client, starts \texttt{warp-svc.service}, and connects via \lstinline|warp-cli|;
+    \item \textbf{Layer~4 TCP Bridge}: Installs \texttt{cloudflared} and runs \texttt{k3s-tcp-tunnel.service} targeting \url{k3s.aslouneyahya.com};
+    \item \textbf{Linux Kernel cgroup Flags}: Injects memory and cpuset cgroup parameters in \texttt{cmdline.txt};
+    \item \textbf{K3s Worker Registration}: Connects to the local bridge using \lstinline|--with-node-id| to isolate node credentials.
+\end{enumerate}
 
 \subsubsection{Pruning Stale Inactive Nodes}
 If a worker node is reinstalled, Kubernetes retains the previous registration as \texttt{NotReady}. Running the following on Master cleans the quorum immediately:
