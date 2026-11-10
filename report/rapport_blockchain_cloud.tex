@@ -180,8 +180,7 @@
 \textbf{\large Course Module: BlockChain \& Smart Contract}\\[0.15cm]
 \textbf{\normalsize Academic Year 2026/2027}\\[0.25cm]
 \textbf{\normalsize Authors / Project Contributors:}\\[0.15cm]
-{\normalsize \textbf{\textcolor{primary}{SALIOUI Ilyes \qquad SBAI Ahmed Taha}}}\\[0.15cm]
-{\normalsize \textbf{\textcolor{primary}{SEBAI EL FASSI Abdelmonim \qquad ASLOUNE Yahya}}}\\[0.3cm]
+{\normalsize \textbf{\textcolor{primary}{ASLOUNE Yahya \qquad SALIOUI Ilyes \qquad SBAI Ahmed Taha}}}\\[0.3cm]
 \textbf{\normalsize Under the Supervision of:}\\[0.15cm]
 {\large \textbf{Prof. Meryeme AYACHE}}\\[0.1cm]
 \textit{\small Professor at the National Institute of Posts and Telecommunications (INPT)}
@@ -224,7 +223,7 @@ Contemporary cloud orchestration infrastructures (typified by hyperscalers such 
 Developed as the capstone engineering project for the \textbf{BlockChain \& Smart Contract} course at INPT under the guidance of \textbf{Prof. Meryeme AYACHE}, this report introduces \textbf{ChainOps} : an enterprise-grade, decentralized cloud orchestration platform deployed across a physical bare-metal cluster of three \textbf{Raspberry Pi 4 (ARM64)} nodes. ChainOps revolutionizes cloud lifecycle management by treating every container provisioning request as an immutable financial transaction anchored into a 5-step cryptographic pipeline:
 
 \begin{enumerate}[leftmargin=1.2cm]
-    \item \textbf{Non-Custodial Cryptographic Client Signing}: Workloads are authorized exclusively via $secp256k1$ elliptic curve signatures, supporting both Web3 browser extensions (MetaMask) and physical \textbf{Smart Cards / Secure Hardware Modules} (Java Card ACOS3 tokens) executing on-chip APDU commands;
+    \item \textbf{Non-Custodial Cryptographic Client Signing}: Workloads are authorized exclusively via $secp256k1$ elliptic curve signatures, supporting both Web3 browser extensions (MetaMask) and physical \textbf{Smart Cards / Secure Hardware Modules} (Java Card tokens) executing on-chip APDU commands;
     \item \textbf{Deterministic Go Smart Contract Gatekeeper}: Enforces cluster-wide physical resource invariants via mathematical identity derivation (\texttt{ecrecover}) and hard limits to mathematically prevent Out-Of-Memory (OOM) host kernel panics;
     \item \textbf{Physical 3-Node Raft Consensus Engine}: Implements majority quorum ($N/2 + 1 = 2$ nodes) voting across physical Raspberry Pis with 150~ms heartbeats, leader election, and signed ballots to eliminate split-brain hazards;
     \item \textbf{Cryptographic Ledger via immudb}: Sequentially binds transactions into a SHA-256 Merkle tree state chain, exposing recalculable Merkle roots for real-time auditability and instantaneous tamper detection;
@@ -281,7 +280,7 @@ Table~\ref{tab:comparison_cloud} contrasts standard enterprise cloud platforms w
 \hline
 \textbf{Identity \& Access} & Static API keys, session tokens, IAM roles & Asymmetric $secp256k1$ cryptographic signatures (EIP-191) \\
 \hline
-\textbf{Hardware Key Custody} & Software secrets, env vars, cloud KMS & Physical Smart Cards (Java Card ACOS3) \& Secure Enclaves \\
+\textbf{Hardware Key Custody} & Software secrets, env vars, cloud KMS & Physical Smart Cards (Java Card) \& Secure Enclaves \\
 \hline
 \textbf{Admission Control} & Mutable webhook scripts (OPA / Gatekeeper) & Deterministic Go Smart Contract with hard hardware invariants \\
 \hline
@@ -305,7 +304,7 @@ Within the scope of the \textbf{BlockChain \& Smart Contract} curriculum at INPT
 \begin{enumerate}[leftmargin=1.2cm]
     \item \textbf{Bare-Metal Physical Deployment}: Deploy on three physical Raspberry Pi 4 ARM64 single-board computers connected over a Gigabit Ethernet switch;
     \item \textbf{Strict Zero-Local-IP Dependency}: Enable worker Pis and external web clients to communicate with the master control plane entirely over a public domain managed by Cloudflare Zero Trust;
-    \item \textbf{Physical Smart Card \& Web3 Key Custody}: Support non-custodial $secp256k1$ key custody using hardware tokens (Java Card / ACOS3 tokens) and browser wallets (MetaMask);
+    \item \textbf{Physical Smart Card \& Web3 Key Custody}: Support non-custodial $secp256k1$ key custody using hardware tokens (Java Card tokens) and browser wallets (MetaMask);
     \item \textbf{Deterministic Smart Contract Gatekeeper}: Implement an automated resource controller in Go that performs elliptic curve recovery (\texttt{ecrecover}) and prevents cluster OOM crashes;
     \item \textbf{Distributed Raft Consensus Engine}: Build a 3-node physical Raft consensus cluster with heartbeats, election timeouts, and signed quorum voting ballots;
     \item \textbf{Cryptographic immudb Merkle Tree Ledger}: Persist all state transitions into SHA-256 hash chains with real-time Merkle root generation and automated tamper detection;
@@ -349,39 +348,13 @@ The platform executes on a dedicated 3-node physical Raspberry Pi 4 bare-metal c
 
 \subsection{End-to-End System Topology}
 
-Figure~\ref{fig:diag_topology} illustrates the end-to-end hardware and network topology connecting client browsers, the Cloudflare Zero Trust edge network, the Master Pi, and physical worker nodes.
-
-\begin{figure}[H]
-\centering
-\resizebox{\linewidth}{!}{
-\begin{tikzpicture}[
-    node distance=1.5cm,
-    clientbox/.style={rectangle, draw=primary, fill=secondary, rounded corners=4pt, align=center, text width=6.8cm, minimum height=1.1cm, font=\small},
-    edgebox/.style={rectangle, draw=accentorange, fill=accentorange!15, rounded corners=4pt, align=center, text width=14.5cm, minimum height=1.2cm, font=\small},
-    masterbox/.style={rectangle, draw=primary, fill=tableheader, rounded corners=4pt, align=center, text width=14.5cm, minimum height=1.6cm, font=\small},
-    workerbox/.style={rectangle, draw=tertiary, fill=riskgreen, rounded corners=4pt, align=center, text width=6.8cm, minimum height=1.5cm, font=\small},
-    arr/.style={draw=primary, -latex', ultra thick},
-    tcpstream/.style={draw=accentorange, -latex', thick, dashed}
-]
-
-    \node [clientbox] (client) {\textbf{Client Tier: Web3 / Hardware Custody}\\\footnotesize Developer Console $\bullet$ MetaMask / Java Card ACOS3 Smart Card};
-    \node [edgebox, below of=client, node distance=2.2cm] (cf) {\textbf{Cloudflare Zero Trust Edge Network}\\\footnotesize \texttt{bc.aslouneyahya.com} (HTTPS Port 443 $\to$ HTTP Port 8080)\\\footnotesize \texttt{k3s.aslouneyahya.com} (Layer 4 TCP $\to$ TCP Port 6443)};
-    \node [masterbox, below of=cf, node distance=2.6cm] (master) {\textbf{Raspberry Pi Master Node: \texttt{pi-node-01} (LAN: 192.168.1.212)}\\\footnotesize ChainOps Go Daemon (:8080) $\bullet$ immudb Ledger (:3322) $\bullet$ K3s Control Plane Server (TCP :6443)};
-    
-    \node [workerbox, below of=master, node distance=2.6cm, xshift=-4.0cm] (w1) {\textbf{Physical Worker 1: \texttt{pi-worker-1-afe458a1}}\\\footnotesize Local TCP tunnel :6443 $\bullet$ K3s Agent $\bullet$ containerd\\\footnotesize Workloads: \texttt{test2} (python:3.11-alpine)};
-    \node [workerbox, below of=master, node distance=2.6cm, xshift=4.0cm] (w2) {\textbf{Physical Worker 2: \texttt{pi-worker-2-d50675de}}\\\footnotesize Local TCP tunnel :6443 $\bullet$ K3s Agent $\bullet$ containerd\\\footnotesize Workloads: \texttt{test} (web-service)};
-
-    \path [arr] (client) -- node[right]{\footnotesize EIP-191 Signed Payload} (cf);
-    \path [arr] (cf) -- node[right]{\footnotesize Encrypted cloudflared Tunnel} (master);
-    \path [tcpstream] (cf.south -| w1.north) -- node[left, font=\footnotesize]{mTLS TCP Stream} (w1.north);
-    \path [tcpstream] (cf.south -| w2.north) -- node[right, font=\footnotesize]{mTLS TCP Stream} (w2.north);
-    \path [arr] (master) -| (w1);
-    \path [arr] (master) -| (w2);
-\end{tikzpicture}
-}
-\caption{End-to-end bare-metal system topology and Zero-Trust network routing}
-\label{fig:diag_topology}
-\end{figure}
+The physical deployment connects three tiers of infrastructure without requiring public IPv4 addresses, static port forwarding, or centralized VPN concentrators:
+\begin{itemize}[leftmargin=1.2cm]
+    \item \textbf{Client Layer (Web3 \& Key Custody)}: Web browsers running MetaMask or localized cryptographic keypairs initiate JSON-RPC deployment payloads, signing each request via non-custodial $secp256k1$ elliptic curve cryptography;
+    \item \textbf{Edge Layer (Cloudflare Zero Trust)}: Terminates external HTTPS traffic on \url{https://bc.aslouneyahya.com} and reverse-proxies requests through an encrypted \texttt{cloudflared} tunnel to port 8080 on the master node. In parallel, it provisions a raw Layer~4 TCP stream for \url{k3s.aslouneyahya.com} targeting port 6443;
+    \item \textbf{Master Node (\texttt{pi-node-01}, 192.168.1.212)}: Runs the ChainOps Go daemon (port 8080), the immudb immutable ledger service (port 3322), and the K3s control plane server (port 6443);
+    \item \textbf{Physical Worker Nodes (\texttt{pi-worker-1-afe458a1} \& \texttt{pi-worker-2-d50675de})}: Connect to the K3s server via local \texttt{cloudflared access tcp} client bridges, executing application pods on bare-metal ARM64 \texttt{containerd} runtimes.
+\end{itemize}
 
 \subsection{Solving the Kubernetes Control Plane Ingress: Layer 4 TCP Tunneling}
 
@@ -408,34 +381,7 @@ cloudflared access tcp --hostname k3s.aslouneyahya.com --url 127.0.0.1:6443
 \end{itemize}
 \end{calloutbox}
 
-Figure~\ref{fig:diag_network_routing} illustrates the segregated Layer 7 and Layer 4 paths.
 
-\begin{figure}[H]
-\centering
-\resizebox{\linewidth}{!}{
-\begin{tikzpicture}[
-    node distance=2.2cm,
-    netbox/.style={rectangle, draw=primary, fill=secondary, rounded corners=4pt, align=center, text width=4.5cm, minimum height=1.1cm, font=\small},
-    cfbox/.style={rectangle, draw=accentorange, fill=accentorange!15, rounded corners=4pt, align=center, text width=5.0cm, minimum height=1.1cm, font=\small},
-    arr/.style={draw=primary, -latex', ultra thick}
-]
-    \node [netbox] (browser) at (0,0) {\textbf{Client Web Browser}\\\footnotesize https://bc.aslouneyahya.com};
-    \node [cfbox] (cfedge) at (6,0) {\textbf{Cloudflare Edge (HTTPS)}\\\footnotesize TLS Termination \& Port 8080 Routing};
-    \node [netbox] (godae) at (12,0) {\textbf{ChainOps Go Daemon}\\\footnotesize Embedded SPA UI \& REST API (:8080)};
-
-    \node [netbox] (workers) at (0,-2.2) {\textbf{Physical K3s Workers}\\\footnotesize localhost:6443 (Local TCP Bridge)};
-    \node [cfbox] (cftcp) at (6,-2.2) {\textbf{Cloudflare Edge (TCP)}\\\footnotesize Raw TCP Stream (No TLS Inspection)};
-    \node [netbox] (k3sserver) at (12,-2.2) {\textbf{K3s Control Plane Server}\\\footnotesize Native mTLS Certificate Handshake (:6443)};
-
-    \path [arr] (browser) -- (cfedge);
-    \path [arr] (cfedge) -- (godae);
-    \path [arr] (workers) -- (cftcp);
-    \path [arr] (cftcp) -- (k3sserver);
-\end{tikzpicture}
-}
-\caption{Dual-path ingress architecture: Layer 7 HTTPS Web3 vs. Layer 4 TCP Kubernetes mTLS}
-\label{fig:diag_network_routing}
-\end{figure}
 
 \newpage
 
@@ -463,55 +409,21 @@ m = \text{Keccak256}\Big(\text{"\textbackslash x19Ethereum Signed Message:\textb
 \end{equation}
 The resulting signature tuple $\sigma = (r, s, v)$ allows deterministic recovery of $K$ via elliptic curve point arithmetic.
 
-\subsection{Smart Card Architecture \& Hardware Key Isolation (Java Card / ACOS3)}
+\subsection{Smart Card Architecture \& Hardware Key Isolation (Java Card)}
 
-While browser extensions (such as MetaMask) provide convenient key storage for desktop developers, enterprise operational security requires \textbf{Hardware Security Module (HSM)} isolation to protect high-privilege infrastructure keys from host operating system compromise, memory scraping, and zero-day keyloggers.
+While browser extensions (such as MetaMask) provide convenient key storage for desktop developers, enterprise operational security requires \textbf{Hardware Security Module (HSM)} and Secure Element isolation to protect high-privilege infrastructure keys from host operating system compromise, memory scraping, and zero-day keyloggers.
 
-\begin{calloutbox}[Smart Card Security Boundary (ACOS3 / Java Card)]
-To anchor cryptographic identity into hardware, ChainOps supports physical \textbf{Smart Cards} (implementing the Java Card 3.0.4 specification and ACOS3 smart card chip emulation). In this model, the private key $k$ is generated on-chip inside the card's tamper-resistant Secure Element (SE) and \textbf{can never be exported or read over the I/O bus}.
+\begin{calloutbox}[Smart Card Hardware Security Boundary (Java Card)]
+To anchor cryptographic identity into hardware, ChainOps supports physical \textbf{Java Card} smart cards (compliant with the Java Card 3.0 specification). In this model, the private key $k$ is generated on-chip inside the card's tamper-resistant Secure Element (SE) and \textbf{can never be exported or read over the I/O bus}.
 \end{calloutbox}
 
-Figure~\ref{fig:diag_smart_card} illustrates the smart card cryptographic command exchange using ISO/IEC 7816-4 \textbf{Application Protocol Data Units (APDU)}.
-
-\begin{figure}[H]
-\centering
-\resizebox{\linewidth}{!}{
-\begin{tikzpicture}[
-    font=\small,
-    box/.style={rectangle, draw=primary, fill=secondary, rounded corners=4pt, align=center, text width=6.5cm, minimum height=1.3cm},
-    cardbox/.style={rectangle, draw=tertiary, fill=riskgreen, rounded corners=4pt, align=center, text width=7.0cm, minimum height=1.3cm},
-    arr/.style={draw=primary, -latex', ultra thick},
-    ret/.style={draw=tertiary, -latex', thick, dashed}
-]
-
-    \node [box] (host) at (0,0) {\textbf{Operator Host Machine}\\\footnotesize Chrome Browser / Native CCID Driver\\\footnotesize Computes Keccak-256 Digest of Workload};
-    
-    \node [cardbox] (card) at (9,0) {\textbf{Physical Smart Card (Java Card / ACOS3)}\\\footnotesize Hardware Cryptographic Coprocessor\\\footnotesize Isolated Secure Element (EEPROM / Flash)};
-
-    \path [arr] (host.north east) -- node[above, font=\footnotesize]{1. APDU: \texttt{0x80 0x2A (INS\_SIGN\_DIGEST)} + $m$} (card.north west);
-    
-    \node [cardbox, below of=card, node distance=2.2cm] (compute) {\textbf{On-Chip Hardware ECDSA}\\\footnotesize Scalar Multiplication: $R = k \cdot G$\\\footnotesize Computes $r = R_x \pmod n$, $s = k^{-1}(m + r k) \pmod n$\\\footnotesize Private key $k$ NEVER leaves hardware};
-
-    \path [arr] (card) -- (compute);
-    
-    \path [ret] (compute.south west) -- node[below, font=\footnotesize]{2. Returns $\sigma = (r, s, v)$ + Status Word \texttt{0x90 0x00}} (host.south east);
-
-\end{tikzpicture}
-}
-\caption{Smart Card APDU cryptographic signature workflow with non-extractable private keys}
-\label{fig:diag_smart_card}
-\end{figure}
-
-The exchange operates via a strict challenge-response protocol:
+The cryptographic signing exchange operates via a strict ISO/IEC 7816-4 challenge-response protocol:
 \begin{enumerate}[leftmargin=1.2cm]
-    \item The client workstation computes the 32-byte hash digest $m$ of the canonical deployment JSON payload;
-    \item The client transmits an ISO 7816 APDU command to the smart card reader:
-    \begin{lstlisting}[language=bash]
-CLA: 0x80 | INS: 0x2A | P1: 0x00 | P2: 0x00 | Lc: 0x20 | Data: <32-byte-hash>
-    \end{lstlisting}
-    \item The card verifies the operator's physical PIN;
-    \item The card's internal cryptographic coprocessor performs scalar multiplication $k \cdot G$ to produce $r$ and $s$;
-    \item The card outputs the 65-byte signature $\sigma = (r, s, v)$ accompanied by the success status word \texttt{0x90 0x00}. Even in the event of a full kernel compromise on the operator's PC, an adversary cannot extract the private key.
+    \item The client workstation computes the 32-byte Keccak-256 hash digest $m$ of the canonical deployment JSON payload;
+    \item The client workstation transmits an ISO/IEC 7816-4 APDU command to the smart card reader over the standard CCID interface;
+    \item The card verifies the operator's physical PIN against securely stored on-chip credentials;
+    \item The card's internal cryptographic coprocessor performs on-chip scalar multiplication $k \cdot G$ to compute the signature components $r = R_x \pmod n$ and $s = k^{-1}(m + r k) \pmod n$;
+    \item The card outputs the 65-byte signature tuple $\sigma = (r, s, v)$ accompanied by the success status word \texttt{0x90 0x00}. Even in the event of a full operating system or kernel compromise on the operator's workstation, the private key remains physically isolated and non-extractable.
 \end{enumerate}
 
 \newpage
@@ -548,46 +460,7 @@ recoveredAddress := crypto.PubkeyToAddress(*pubKey).Hex()
     Validates that the workload name matches the regex \lstinline|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$|, preventing manifest injection attacks into Kubernetes.
 \end{enumerate}
 
-Figure~\ref{fig:diag_smart_contract_flow} diagrams the gatekeeping decision flowchart.
 
-\begin{figure}[H]
-\centering
-\resizebox{\linewidth}{!}{
-\begin{tikzpicture}[
-    font=\small,
-    node distance=1.8cm,
-    start/.style={rectangle, draw=primary, fill=primary, text=white, font=\bfseries\small, rounded corners=3pt, align=center, text width=5.5cm, minimum height=1cm},
-    check/.style={diamond, draw=primary, fill=tableheader, aspect=2.2, align=center, font=\footnotesize, inner sep=2pt, text width=4.0cm},
-    pass/.style={rectangle, draw=tertiary, fill=riskgreen, font=\bfseries\footnotesize, rounded corners=3pt, align=center, text width=4.5cm, minimum height=0.8cm},
-    fail/.style={rectangle, draw=riskred!80!black, fill=riskred, font=\bfseries\footnotesize, rounded corners=3pt, align=center, text width=4.8cm, minimum height=0.8cm},
-    arr/.style={draw=primary, -latex', thick}
-]
-
-    \node [start] (init) at (0,0) {Incoming Transaction Payload:\\POST /api/deployments};
-    \node [check] (c1) at (0,-2.0) {Signature Valid ?\\(\texttt{ecrecover} address match)};
-    \node [fail] (err1) at (6.5,-2.0) {401 Unauthorized :\\Signature Forged / Invalid};
-
-    \node [check] (c2) at (0,-4.4) {RAM $\le$ 2048 MB\\and DNS-1123 compliant ?};
-    \node [fail] (err2) at (6.5,-4.4) {400 Bad Request :\\Spec Exceeds Single-Pod Cap};
-
-    \node [check] (c3) at (0,-6.8) {$\text{RAM}_{\text{allocated}} + \text{RAM}_{\text{requested}}$\\$\le 11,382$ MB (Cluster Cap) ?};
-    \node [fail] (err3) at (6.5,-6.8) {403 Forbidden :\\Cluster Memory Saturated};
-
-    \node [pass] (ok) at (0,-9.0) {Smart Contract Approved\\$\rightarrow$ Forward to Raft Consensus Quorum};
-
-    \path [arr] (init) -- (c1);
-    \path [arr] (c1) -- node[above, font=\footnotesize]{No} (err1);
-    \path [arr] (c1) -- node[right, font=\footnotesize]{Yes} (c2);
-    \path [arr] (c2) -- node[above, font=\footnotesize]{No} (err2);
-    \path [arr] (c2) -- node[right, font=\footnotesize]{Yes} (c3);
-    \path [arr] (c3) -- node[above, font=\footnotesize]{No} (err3);
-    \path [arr] (c3) -- node[right, font=\footnotesize]{Yes} (ok);
-
-\end{tikzpicture}
-}
-\caption{Deterministic validation flowchart executed by the Go Smart Contract Gatekeeper}
-\label{fig:diag_smart_contract_flow}
-\end{figure}
 
 \newpage
 
@@ -632,61 +505,12 @@ Raft decomposes distributed consensus into three orthogonal subproblems:
 
 \subsection{Fault Tolerance \& Network Partition Scenarios}
 
-Figure~\ref{fig:diag_raft_scenarios} details the three primary operational scenarios handled by the physical Raft consensus engine:
-
-\begin{figure}[H]
-\centering
-\resizebox{\linewidth}{!}{
-\begin{tikzpicture}[
-    font=\small,
-    scen/.style={rectangle, draw=primary, fill=secondary, rounded corners=5pt, inner sep=8pt, text width=4.8cm, align=center},
-    nodeok/.style={rectangle, draw=tertiary, fill=riskgreen, rounded corners=3pt, text width=4.2cm, minimum height=0.7cm, align=center, font=\footnotesize},
-    nodefail/.style={rectangle, draw=riskred!80!black, fill=riskred, rounded corners=3pt, text width=4.2cm, minimum height=0.7cm, align=center, font=\footnotesize},
-    resok/.style={rectangle, draw=tertiary, fill=tertiary, text=white, font=\bfseries\footnotesize, rounded corners=3pt, text width=4.2cm, minimum height=0.8cm, align=center},
-    resfail/.style={rectangle, draw=riskred!80!black, fill=riskred!80!black, text=white, font=\bfseries\footnotesize, rounded corners=3pt, text width=4.2cm, minimum height=0.8cm, align=center}
-]
-
-    % Scenario A
-    \node [scen] (scenA) at (0,0) {
-        \textbf{\textcolor{primary}{Scenario A: Nominal 3/3}}\\[0.2cm]
-        \begin{tikzpicture}
-            \node [nodeok] (a1) at (0,0) {pi-node-01: Vote YES};
-            \node [nodeok] (a2) at (0,-0.8) {pi-worker-1: Vote YES};
-            \node [nodeok] (a3) at (0,-1.6) {pi-worker-2: Vote YES};
-            \node [resok] (ar) at (0,-2.6) {Quorum Reached (3/3)\\ \small Transaction Committed};
-            \draw[-latex', thick] (a3) -- (ar);
-        \end{tikzpicture}
-    };
-
-    % Scenario B
-    \node [scen] (scenB) at (5.5,0) {
-        \textbf{\textcolor{primary}{Scenario B: 1 Worker Down}}\\[0.2cm]
-        \begin{tikzpicture}
-            \node [nodeok] (b1) at (0,0) {pi-node-01: Vote YES};
-            \node [nodeok] (b2) at (0,-0.8) {pi-worker-1: Vote YES};
-            \node [nodefail] (b3) at (0,-1.6) {pi-worker-2: CRASHED};
-            \node [resok] (br) at (0,-2.6) {Quorum Satisfied (2/3)\\ \small Zero Downtime};
-            \draw[-latex', thick] (b3) -- (br);
-        \end{tikzpicture}
-    };
-
-    % Scenario C
-    \node [scen] (scenC) at (11.0,0) {
-        \textbf{\textcolor{primary}{Scenario C: Network Partition}}\\[0.2cm]
-        \begin{tikzpicture}
-            \node [nodeok] (c1) at (0,0) {pi-node-01: Vote YES};
-            \node [nodefail] (c2) at (0,-0.8) {pi-worker-1: ISOLATED};
-            \node [nodefail] (c3) at (0,-1.6) {pi-worker-2: ISOLATED};
-            \node [resfail] (cr) at (0,-2.6) {Quorum Failed (1/3)\\ \small Safe Mode (No Split-Brain)};
-            \draw[-latex', thick] (c3) -- (cr);
-        \end{tikzpicture}
-    };
-
-\end{tikzpicture}
-}
-\caption{Operational fault tolerance scenarios handled by the physical 3-node Raft quorum}
-\label{fig:diag_raft_scenarios}
-\end{figure}
+The physical 3-node Raft consensus engine deterministically handles three operational scenarios:
+\begin{enumerate}[leftmargin=1.2cm]
+    \item \textbf{Scenario A: Nominal 3/3 Consensus}: All three physical Raspberry Pis are operational and communicate across the Gigabit Ethernet switch. The leader receives positive ballots from both followers, reaching 100\% consensus ($3/3$). The transaction is committed and logged to immudb;
+    \item \textbf{Scenario B: Single-Node Hardware Failure (2/3 Quorum)}: If one physical worker suffers a sudden power loss or hardware failure, the leader continues to receive a valid ballot from the remaining worker. Because $2 \ge \lfloor 3/2 \rfloor + 1 = 2$, majority quorum is preserved, allowing zero-downtime workload deployments;
+    \item \textbf{Scenario C: Network Partition \& Split-Brain Mitigation (1/3)}: If an isolated leader loses connectivity to both physical workers, it collects only its own vote ($1/3$). Failing the majority threshold, the proposal is rejected, preventing inconsistent split-brain writes across partitioned segments.
+\end{enumerate}
 
 When a majority quorum is assembled, the leader creates a signed \texttt{ConsensusReceipt}:
 \begin{lstlisting}[language=golang]
@@ -718,103 +542,15 @@ H_0 = \text{0x0000000000000000000000000000000000000000000000000000000000000000}
 H_n = \text{SHA256}(H_{n-1} \,\|\, \text{TxID}_n \,\|\, \text{Timestamp}_n \,\|\, \text{SignerAddress}_n \,\|\, \text{PayloadHash}_n)
 \end{equation}
 
-Figure~\ref{fig:diag_merkle_chain} illustrates the dual-layer structure combining linear state chaining with a binary Merkle tree.
-
-\begin{figure}[H]
-\centering
-\resizebox{\linewidth}{!}{
-\begin{tikzpicture}[
-    font=\small,
-    tx/.style={rectangle, draw=primary, fill=secondary, rounded corners=3pt, minimum width=3.4cm, minimum height=1.3cm, align=center, font=\footnotesize},
-    leaf/.style={rectangle, draw=tertiary, fill=riskgreen, rounded corners=3pt, minimum width=2.4cm, minimum height=0.7cm, align=center, font=\footnotesize},
-    parentnode/.style={rectangle, draw=primary, fill=tableheader, rounded corners=3pt, minimum width=3.6cm, minimum height=0.7cm, align=center, font=\footnotesize},
-    root/.style={rectangle, draw=accentorange, fill=accentorange!20, font=\bfseries\small, rounded corners=3pt, minimum width=8cm, minimum height=0.9cm, align=center},
-    arr/.style={draw=primary, -latex', thick},
-    chainarr/.style={draw=tertiary, -latex', ultra thick}
-]
-
-    % State Blocks
-    \node [tx] (g) at (0,0) {\textbf{Genesis State}\\Hash: 0x0000...};
-    \node [tx] (tx1) at (4.2,0) {\textbf{Tx \#1 : DEPLOY}\\Hash: 0x2b3ff0...};
-    \node [tx] (tx2) at (8.4,0) {\textbf{Tx \#2 : DEPLOY}\\Hash: 0x8a1c9e...};
-    \node [tx] (tx3) at (12.6,0) {\textbf{Tx \#3 : STOP}\\Hash: 0xf42d11...};
-
-    \path [chainarr] (g) -- node[above, font=\tiny]{SHA-256} (tx1);
-    \path [chainarr] (tx1) -- node[above, font=\tiny]{SHA-256} (tx2);
-    \path [chainarr] (tx2) -- node[above, font=\tiny]{SHA-256} (tx3);
-
-    % Merkle Leaves
-    \node [leaf] (l1) at (2.1,-2.0) {Leaf 1: Tx \#1};
-    \node [leaf] (l2) at (5.5,-2.0) {Leaf 2: Tx \#2};
-    \node [leaf] (l3) at (8.9,-2.0) {Leaf 3: Tx \#3};
-    \node [leaf] (l4) at (12.3,-2.0) {Leaf 4: Tx \#3};
-
-    \path [arr] (tx1) -- (l1);
-    \path [arr] (tx2) -- (l2);
-    \path [arr] (tx3) -- (l3);
-    \path [arr] (tx3) -- (l4);
-
-    % Parent Nodes
-    \node [parentnode] (p1) at (3.8,-3.2) {Parent 1 = H(Leaf 1 + 2)};
-    \node [parentnode] (p2) at (10.6,-3.2) {Parent 2 = H(Leaf 3 + 4)};
-
-    \path [arr] (l1) -- (p1);
-    \path [arr] (l2) -- (p1);
-    \path [arr] (l3) -- (p2);
-    \path [arr] (l4) -- (p2);
-
-    % Merkle Root
-    \node [root] (r) at (7.2,-4.5) {Global Merkle Tree Root = H(Parent 1 + Parent 2)\\ \footnotesize Active Fingerprint: \texttt{0xedb3e527...4d01d0}};
-
-    \path [arr] (p1) -- (r);
-    \path [arr] (p2) -- (r);
-
-\end{tikzpicture}
-}
-\caption{Cryptographic SHA-256 hash chaining and binary Merkle tree state proof in immudb}
-\label{fig:diag_merkle_chain}
-\end{figure}
+Transactions in immudb form a dual-layer cryptographic structure:
+\begin{enumerate}[leftmargin=1.2cm]
+    \item \textbf{Sequential Hash Chain}: Each state block links recursively to its immediate predecessor via $H_n = \text{SHA256}(H_{n-1} \,|\,\, \text{TxID}_n \,|\,\, \dots)$, ensuring total temporal ordering;
+    \item \textbf{Binary Merkle Tree}: Transactions simultaneously populate the leaves of a balanced binary Merkle tree. Pairwise hashes are recursively computed upward until deriving the cluster's active Merkle Root (e.g., \texttt{0xedb3e527...4d01d0}). This architecture enables logarithmic $O(\log N)$ inclusion proofs for third-party client verification.
+\end{enumerate}
 
 \subsection{Real-Time Audit Verification \& Tamper Detection Workflow}
 
-The endpoint \texttt{GET /api/ledger/audit} allows third-party observers to cryptographically verify cluster history from Genesis without administrative credentials. Figure~\ref{fig:diag_tamper_detection} formalizes this recursive integrity algorithm.
-
-\begin{figure}[H]
-\centering
-\resizebox{\linewidth}{!}{
-\begin{tikzpicture}[
-    font=\small,
-    node distance=1.4cm,
-    stepb/.style={rectangle, draw=primary, fill=secondary, rounded corners=3pt, align=center, text width=5.2cm, minimum height=0.9cm},
-    dec/.style={diamond, draw=primary, fill=tableheader, aspect=2.2, align=center, font=\footnotesize, inner sep=2pt, text width=3.8cm},
-    ok/.style={rectangle, draw=tertiary, fill=riskgreen, font=\bfseries\small, rounded corners=3pt, align=center, text width=4.5cm, minimum height=0.9cm},
-    tamper/.style={rectangle, draw=riskred!80!black, fill=riskred, font=\bfseries\small, rounded corners=3pt, align=center, text width=4.8cm, minimum height=0.9cm},
-    arr/.style={draw=primary, -latex', thick}
-]
-
-    \node [stepb] (start) at (0,0) {Audit Request:\\ \texttt{GET /api/ledger/audit}};
-    \node [dec] (d1) at (0,-1.8) {$H_{k} == \text{RecalculatedHash}$ ?};
-    \node [tamper] (tamper) at (5.5,-1.8) {\textbf{Tamper Detected}\\ \footnotesize Stored block hash altered};
-
-    \node [dec] (d2) at (0,-3.8) {All $N$ blocks validated ?};
-    \node [stepb] (next) at (0,-5.4) {Increment $k \leftarrow k+1$};
-    \node [dec] (d3) at (-5.0,-3.8) {$\text{Root}_{\text{calc}} == \text{Root}_{\text{immudb}}$ ?};
-    \node [ok] (oknode) at (-5.0,-5.4) {\textbf{100\% Cryptographic Integrity}\\ \footnotesize Zero Tampering Detected};
-
-    \path [arr] (start) -- (d1);
-    \path [arr] (d1) -- node[above, font=\footnotesize]{No} (tamper);
-    \path [arr] (d1) -- node[right, font=\footnotesize]{Yes} (d2);
-    \path [arr] (d2) -- node[right, font=\footnotesize]{No} (next);
-    \path [arr] (next.east) -- ++(1.0,0) |- (d1.east);
-    \path [arr] (d2) -- node[above, font=\footnotesize]{Yes} (d3);
-    \path [arr] (d3) |- node[above, font=\footnotesize]{No} (tamper);
-    \path [arr] (d3) -- node[right, font=\footnotesize]{Yes} (oknode);
-
-\end{tikzpicture}
-}
-\caption{Mathematical verification algorithm for full Merkle tree and hash chain auditing}
-\label{fig:diag_tamper_detection}
-\end{figure}
+The endpoint \texttt{GET /api/ledger/audit} allows third-party observers to cryptographically verify cluster history from Genesis without administrative credentials. The audit algorithm sequentially traverses each committed transaction from block $k=1$ to tip $N$, re-evaluating $H_k = \text{SHA256}(H_{k-1} \,|\,\, \dots)$ and asserting equality with the stored record. Once all individual block hashes match, the overall Merkle tree is reconstructed to confirm that the recalculated root matches the immudb root header.
 
 To prove tamper resistance in demonstrations, calling \lstinline|POST /api/ledger/simulate-tamper| alters an on-disk record. The audit algorithm immediately flags the fraud:
 \begin{lstlisting}[language=json]
@@ -866,136 +602,36 @@ if strings.Contains(image, "python") {
     \end{lstlisting}
 \end{itemize}
 
-Figure~\ref{fig:diag_state_machine} illustrates the complete workload lifecycle state machine.
-
-\begin{figure}[H]
-\centering
-\resizebox{\linewidth}{!}{
-\begin{tikzpicture}[
-    font=\small,
-    state/.style={rectangle, draw=primary, fill=secondary, rounded corners=6pt, align=center, minimum width=3.4cm, minimum height=0.9cm},
-    arr/.style={draw=primary, -latex', thick}
-]
-
-    \node [state] (form) at (0,0) {Form Configuration};
-    \node [state] (signed) at (4.5,0) {EIP-191 Signed};
-    \node [state] (sc) at (9.0,0) {Smart Contract};
-    \node [state] (raft) at (13.5,0) {Raft Consensus};
-
-    \node [state] (rej) at (9.0,-2.0) {Rejected (4xx Error)};
-    \node [state] (ledger) at (13.5,-2.0) {immudb Committed};
-    \node [state] (k3s) at (9.0,-4.0) {client-go Manifest};
-    \node [state] (run) at (4.5,-4.0) {Pod Running (1/1)};
-    \node [state] (term) at (0,-4.0) {Signed Terminate};
-
-    \path [arr] (form) -- (signed);
-    \path [arr] (signed) -- (sc);
-    \path [arr] (sc) -- (raft);
-    \path [arr] (sc) -- node[left, font=\footnotesize]{Quota Exceeded} (rej);
-    \path [arr] (raft) -- node[right, font=\footnotesize]{Quorum 3/3} (ledger);
-    \path [arr] (ledger) -- (k3s);
-    \path [arr] (k3s) -- (run);
-    \path [arr] (run) -- (term);
-
-\end{tikzpicture}
-}
-\caption{Finite state machine governing container workload lifecycles}
-\label{fig:diag_state_machine}
-\end{figure}
+Workload execution follows a strict finite state progression across seven distinct phases:
+\begin{enumerate}[leftmargin=1.2cm]
+    \item \textbf{Form Configuration}: The operator defines container parameters (image, replicas, port, memory quota) in the web console;
+    \item \textbf{Cryptographic Signing}: The client workstation computes the EIP-191 digest and signs the canonical payload via MetaMask or local keypair;
+    \item \textbf{Smart Contract Evaluation}: The Go Gatekeeper validates signature authenticity, DNS-1123 compliance, and cluster RAM caps;
+    \item \textbf{Distributed Raft Quorum}: The leader broadcasts the proposal and collects majority signed ballots ($2/3$ or $3/3$);
+    \item \textbf{Immutable Ledger Persistence}: The approved transaction is written to immudb with its updated Merkle root;
+    \item \textbf{client-go Manifest Scheduling}: The orchestrator synthesizes the Kubernetes Deployment and applies node affinity constraints;
+    \item \textbf{Active Pod Execution}: The pod transitions to \texttt{Running 1/1 Ready} on a physical worker Pi.
+\end{enumerate}
 
 \subsection{Internal Go Package Architecture}
 
-Figure~\ref{fig:diag_go_packages} maps the decoupled package boundaries within the Go daemon.
+The Go cluster daemon codebase (\texttt{cluster-daemon/pkg/}) is structured into six decoupled packages:
+\begin{itemize}[leftmargin=1.2cm]
+    \item \texttt{pkg/api}: Implements the HTTP REST API gateway, routing client traffic to internal handlers;
+    \item \texttt{pkg/crypto}: Encapsulates elliptic curve cryptography, executing Keccak-256 hashing and \texttt{ecrecover};
+    \item \texttt{pkg/contract}: Hosts the deterministic Smart Contract Gatekeeper enforcing hardware memory and CPU invariants;
+    \item \texttt{pkg/consensus}: Implements the physical 3-node Raft consensus engine, term tracking, and signed ballots;
+    \item \texttt{pkg/ledger}: Encapsulates the immudb client driver, linear hash chaining, and real-time Merkle tree audits;
+    \item \texttt{pkg/k3s}: Interfaces with the Kubernetes control plane via official \texttt{client-go} drivers for manifest synthesis.
+\end{itemize}
 
-\begin{figure}[H]
-\centering
-\resizebox{\linewidth}{!}{
-\begin{tikzpicture}[
-    font=\small,
-    api/.style={rectangle, draw=accentorange, fill=accentorange!15, rounded corners=4pt, align=center, minimum width=15cm, minimum height=1.1cm},
-    pkg/.style={rectangle, draw=primary, fill=secondary, rounded corners=4pt, align=center, minimum width=4.5cm, minimum height=1.4cm, font=\footnotesize},
-    arr/.style={draw=primary, -latex', thick}
-]
-
-    \node [api] (apilayer) at (0,0) {\textbf{HTTP REST API Gateway (\texttt{pkg/api})}\\\footnotesize Endpoints: \texttt{/api/deployments}, \texttt{/api/cluster/stats}, \texttt{/api/ledger/audit}, \texttt{/api/health}};
-
-    \node [pkg] (crypto) at (-5.0,-2.4) {\textbf{pkg/crypto}\\\footnotesize ecrecover $\bullet$ Keccak-256\\\footnotesize $secp256k1$ Verification};
-    \node [pkg] (contract) at (0,-2.4) {\textbf{pkg/contract}\\\footnotesize Smart Contract Gatekeeper\\\footnotesize Hardware RAM/CPU Caps};
-    \node [pkg] (consensus) at (5.0,-2.4) {\textbf{pkg/consensus}\\\footnotesize 3-Node Raft Engine\\\footnotesize Signed Quorum Ballots};
-
-    \node [pkg] (ledger) at (-2.5,-4.6) {\textbf{pkg/ledger}\\\footnotesize immudb Client Driver\\\footnotesize Merkle Tree Recalculation};
-    \node [pkg] (k3s) at (2.5,-4.6) {\textbf{pkg/k3s}\\\footnotesize client-go Kubernetes API\\\footnotesize Manifest Generation \& Scheduling};
-
-    \path [arr] (apilayer) -- (crypto);
-    \path [arr] (apilayer) -- (contract);
-    \path [arr] (apilayer) -- (consensus);
-    \path [arr] (contract) -- (ledger);
-    \path [arr] (consensus) -- (ledger);
-    \path [arr] (ledger) -- (k3s);
-
-\end{tikzpicture}
-}
-\caption{Modular Go package architecture (\texttt{cluster-daemon/pkg/})}
-\label{fig:diag_go_packages}
-\end{figure}
-
-Figure~\ref{fig:diag_erd} defines the Entity-Relationship Data Model linking transactions, consensus receipts, and Kubernetes pods.
-
-\begin{figure}[H]
-\centering
-\resizebox{\linewidth}{!}{
-\begin{tikzpicture}[
-    font=\small,
-    entity/.style={rectangle, draw=primary, fill=secondary, rounded corners=3pt, text width=6.5cm, inner sep=6pt},
-    arr/.style={draw=primary, -latex', ultra thick}
-]
-
-    \node [entity] (req) at (0,0) {
-        \textbf{\textcolor{primary}{SignedDeploymentRequest}}\\[0.1cm]
-        \footnotesize
-        + signerAddress : string ($secp256k1$)\\
-        + signature : string (r, s, v)\\
-        + rawPayload : string (Canonical JSON)\\
-        + timestamp : int64
-    };
-
-    \node [entity] (tx) at (8.5,0) {
-        \textbf{\textcolor{primary}{LedgerTransaction (immudb)}}\\[0.1cm]
-        \footnotesize
-        + txId : uint64 (PK, Monotonic)\\
-        + blockHash : string (SHA-256)\\
-        + previousHash : string (SHA-256)\\
-        + merkleRoot : string (Active Merkle Tree)\\
-        + quorumProof : ConsensusReceipt
-    };
-
-    \node [entity] (receipt) at (0,-3.5) {
-        \textbf{\textcolor{primary}{ConsensusReceipt (Raft)}}\\[0.1cm]
-        \footnotesize
-        + term : int64\\
-        + leaderNode : string (\texttt{pi-node-01})\\
-        + positiveVotes : int (3/3)\\
-        + quorumReached : bool (true)
-    };
-
-    \node [entity] (pod) at (8.5,-3.5) {
-        \textbf{\textcolor{primary}{K3sDeploymentStatus}}\\[0.1cm]
-        \footnotesize
-        + deploymentId : string (PK)\\
-        + nodeAssigned : string (\texttt{pi-worker-1})\\
-        + internalPodIp : string (10.42.x.x)\\
-        + phase : string (Running 1/1 Ready)
-    };
-
-    \path [arr] (req) -- node[above, font=\footnotesize]{produces} (tx);
-    \path [arr] (receipt) -- node[above, font=\footnotesize]{certifies} (tx);
-    \path [arr] (tx) -- node[right, font=\footnotesize]{schedules} (pod);
-
-\end{tikzpicture}
-}
-\caption{Entity-Relationship Diagram (ERD) connecting signed requests, Raft receipts, and K3s pods}
-\label{fig:diag_erd}
-\end{figure}
+The platform's data model links client intent, consensus proofs, and physical infrastructure across four core entities:
+\begin{itemize}[leftmargin=1.2cm]
+    \item \textbf{Signed Request}: Client payload containing \texttt{signerAddress}, signature $\sigma = (r, s, v)$, canonical JSON body, and timestamp;
+    \item \textbf{Consensus Receipt}: Raft quorum ballot proof containing the election term, leader ID, positive vote count, and quorum state;
+    \item \textbf{Ledger Transaction}: The immutable record stored in immudb with monotonic \texttt{txId}, \texttt{blockHash}, \texttt{previousHash}, active \texttt{merkleRoot}, and embedded consensus receipt;
+    \item \textbf{K3s Workload Status}: The active cluster state managed by \texttt{client-go}, including \texttt{deploymentId}, assigned physical host (\texttt{pi-worker-1}), internal IP, and pod execution phase.
+\end{itemize}
 
 \newpage
 
@@ -1032,7 +668,7 @@ Figure~\ref{fig:new_deployment_steps} displays the interactive modal visualizing
 
 \subsection{Live Pod Execution on Physical Worker Node}
 
-Figure~\ref{fig:test2_running} confirms container \texttt{test2} (\texttt{python:3.11-alpine}) running in physical state \texttt{Running (1/1 Ready)} on node \texttt{pi-worker-1-afe458a1} with internal pod IP \texttt{10.42.4.2}.
+Figure~\ref{fig:test2_running} confirms container \texttt{test2} (\texttt{python:3.11-alpine}) executing in state \texttt{Running (1/1 Ready)} on node \texttt{pi-worker-1-\allowbreak afe458a1} with internal pod IP \texttt{10.42.4.2}.
 
 \begin{figure}[H]
 \centering

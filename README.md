@@ -385,7 +385,10 @@ For detailed system design diagrams, including:
 ---
 
 ## 🎓 Academic Attribution & Credits
-- **Institution:** Institut National des Postes et Télécommunications (INPT)
-- **Author:** Yahya Asloune
+- **Institution:** Institut National des Postes et Télécommunications (INPT) — Rabat, Morocco
+- **Department:** Embedded Systems & Digital Services (SESNUM — INE3)
+- **Module:** BlockChain & Smart Contract
+- **Professor / Mentor:** Prof. Meryeme AYACHE
+- **Authors / Engineering Team:** Yahya ASLOUNE, Ilyes SALIOUI, Ahmed Taha SBAI
 - **Repository:** [https://github.com/AslouneYahya/blockchain-cloud-platform](https://github.com/AslouneYahya/blockchain-cloud-platform)
 - **Live Platform URL:** [https://bc.aslouneyahya.com](https://bc.aslouneyahya.com)
