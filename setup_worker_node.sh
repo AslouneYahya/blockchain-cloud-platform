@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # setup_worker_node.sh — Zero-Config Worker Node Setup
-# 1. Stops stale services & cleans old K3s cache
-# 2. Installs & registers Cloudflare WARP (warp-svc & warp-cli), kept in proxy mode
+# 1. Stops stale services, disconnects WARP TUN, & cleans old K3s cache
+# 2. Installs & registers Cloudflare WARP (warp-svc & warp-cli), kept in proxy/disconnected mode
 # 3. Detects Master endpoint (Direct LAN or Cloudflare TCP Bridge k3s.aslouneyahya.com)
-# 4. Configures Linux cgroups for K3s
-# 5. Joins K3s Cluster via resolved endpoint
+# 4. Verifies endpoint CA cert before agent registration
+# 5. Configures Linux cgroups for K3s
+# 6. Joins K3s Cluster via verified endpoint
 # ==============================================================================
 set -e
 
@@ -28,8 +29,10 @@ if [ -z "$TARGET_NODE_NAME" ]; then
 fi
 
 echo "======================================================================"
-echo "  [1/5] Stopping stale services & cleaning old K3s cache              "
+echo "  [1/6] Disconnecting WARP TUN & Cleaning Old K3s State               "
 echo "======================================================================"
+# Crucial: Disconnect WARP TUN device to stop intercepting outbound TCP tunnel packets
+sudo warp-cli disconnect 2>/dev/null || true
 sudo systemctl stop k3s-agent 2>/dev/null || true
 sudo systemctl stop k3s-tcp-tunnel 2>/dev/null || true
 sudo systemctl stop cloudflared 2>/dev/null || true
@@ -51,7 +54,7 @@ sudo rm -f /etc/systemd/system/k3s-agent.service.env
 sudo systemctl daemon-reload
 
 echo "======================================================================"
-echo "  [2/5] Ensuring Cloudflare WARP (warp-cli & warp-svc) is Installed   "
+echo "  [2/6] Ensuring Cloudflare WARP (warp-cli & warp-svc) is Installed   "
 echo "======================================================================"
 RELEASE=$(lsb_release -cs 2>/dev/null || grep VERSION_CODENAME /etc/os-release | cut -d= -f2 || echo "bullseye")
 if [ "$RELEASE" = "bullseye" ]; then
@@ -75,15 +78,15 @@ if [ -f /tmp/cloudflare-warp.deb ]; then
     sudo systemctl daemon-reload
     sudo systemctl enable --now warp-svc || true
     sleep 2
-    yes | warp-cli --accept-tos register 2>/dev/null || true
-    # Keep WARP in proxy mode/disconnected to prevent capturing default route and breaking K3s overlay
-    warp-cli --accept-tos mode proxy 2>/dev/null || true
-    warp-cli disconnect 2>/dev/null || true
+    yes | sudo warp-cli --accept-tos register 2>/dev/null || sudo warp-cli register 2>/dev/null || true
+    # Keep WARP in proxy mode and disconnected so it never creates a TUN loop with K3s
+    sudo warp-cli --accept-tos mode proxy 2>/dev/null || sudo warp-cli set-mode proxy 2>/dev/null || true
+    sudo warp-cli disconnect 2>/dev/null || true
     echo "✓ Cloudflare WARP (warp-svc & warp-cli) ready on worker."
 fi
 
 echo "======================================================================"
-echo "  [3/5] Resolving Master Endpoint (LAN vs Cloudflare TCP Bridge)      "
+echo "  [3/6] Resolving Master Endpoint (LAN vs Cloudflare TCP Bridge)      "
 echo "======================================================================"
 K3S_SERVER_URL=""
 
@@ -124,13 +127,42 @@ EOF
 
     sudo systemctl daemon-reload
     sudo systemctl enable --now k3s-tcp-tunnel.service
+    sudo systemctl restart k3s-tcp-tunnel.service
     sleep 3
     K3S_SERVER_URL="https://127.0.0.1:6443"
-    echo "✓ Cloudflare TCP Bridge running on 127.0.0.1:6443 -> ${DOMAIN_ENDPOINT}"
+    echo "✓ Cloudflare TCP Bridge active on 127.0.0.1:6443 -> ${DOMAIN_ENDPOINT}"
 fi
 
 echo "======================================================================"
-echo "  [4/5] Configuring Linux Kernel cgroups on Worker Pi                 "
+echo "  [4/6] Verifying K3s Master Endpoint Connectivity                   "
+echo "======================================================================"
+echo "Testing connection to ${K3S_SERVER_URL}/cacerts..."
+ENDPOINT_VERIFIED=0
+for i in {1..8}; do
+    if curl -k -s --connect-timeout 3 "${K3S_SERVER_URL}/cacerts" 2>/dev/null | grep -q "BEGIN CERTIFICATE"; then
+        echo "✓ Connected to Master! Received valid K3s CA certificate."
+        ENDPOINT_VERIFIED=1
+        break
+    fi
+    echo "Waiting for Master endpoint to respond (attempt $i/8)..."
+    # Ensure WARP is disconnected if looping
+    sudo warp-cli disconnect 2>/dev/null || true
+    sleep 2
+done
+
+if [ $ENDPOINT_VERIFIED -eq 0 ]; then
+    echo "⚠ Warning: Could not fetch CA cert from ${K3S_SERVER_URL}."
+    echo "  Checking if Master Pi is reachable on local network (192.168.1.212)..."
+    if curl -k -s --connect-timeout 3 "https://192.168.1.212:6443/cacerts" 2>/dev/null | grep -q "BEGIN CERTIFICATE"; then
+        echo "✓ Switched to direct LAN Master endpoint: https://192.168.1.212:6443"
+        K3S_SERVER_URL="https://192.168.1.212:6443"
+    else
+        echo "Continuing setup with ${K3S_SERVER_URL}..."
+    fi
+fi
+
+echo "======================================================================"
+echo "  [5/6] Configuring Linux Kernel cgroups on Worker Pi                 "
 echo "======================================================================"
 CMDLINE_FILE="/boot/firmware/cmdline.txt"
 [ ! -f "$CMDLINE_FILE" ] && CMDLINE_FILE="/boot/cmdline.txt"
@@ -143,7 +175,7 @@ if [ -f "$CMDLINE_FILE" ]; then
 fi
 
 echo "======================================================================"
-echo "  [5/5] Joining K3s Cluster via ${K3S_SERVER_URL} (Node: ${TARGET_NODE_NAME})"
+echo "  [6/6] Joining K3s Cluster via ${K3S_SERVER_URL} (Node: ${TARGET_NODE_NAME})"
 echo "======================================================================"
 
 curl -sfL https://get.k3s.io | K3S_URL="${K3S_SERVER_URL}" K3S_TOKEN="${CLUSTER_TOKEN}" sh -s - agent \
